@@ -1,0 +1,71 @@
+MINIMAX PARA CODEX JDC - 0.1.0
+
+INSTALAR CUANDO QUIERAS
+1. Extrae el ZIP en una carpeta y ejecuta INSTALAR.cmd.
+2. Introduce tu clave NVIDIA en la ventana de contraseña. No la pegues en el chat.
+3. El instalador hace una prueba real de MiniMax y configura su proveedor sólo
+   si la conexión funciona. Mantiene los modelos GPT y tu modelo predeterminado.
+4. Carga de nuevo la configuración de Codex y selecciona MiniMax-M3.1-Flash.
+5. En Plugins, abre tu mercado personal e instala MiniMax para Codex JDC para
+   disponer de sus herramientas y del arranque al cargar el complemento.
+
+También puedes instalar la entrada desde un mercado local preparado y pedir
+"Configura MiniMax". El complemento abre la misma ventana privada.
+Los plugins de Codex no ejecutan instaladores automáticamente al descargarse:
+la configuración se inicia al ejecutar INSTALAR.cmd o pedir Configurar MiniMax.
+El instalador no cierra ni reinicia Codex por su cuenta.
+
+REQUISITOS
+Windows, Node.js 22 o posterior y la sesión habitual de Codex iniciada.
+Clave de NVIDIA para integrate.api.nvidia.com; no es una clave de MiniMax directo.
+No instala Node.js ni descarga ejecutables. No usa servicios ni tareas de Windows.
+No funciona en ChatGPT web/móvil porque necesita un proceso en el ordenador.
+
+QUÉ SE INSTALA
+Código del plugin: %USERPROFILE%\.codex\plugins\minimax-jdc
+Entrada conservando otros plugins: %USERPROFILE%\.agents\plugins\marketplace.json
+Clave cifrada y registros: %LOCALAPPDATA%\ELUNIVERSODEJDC\MiniMaxCodex
+Proveedor añadido: minimax_jdc, en el config.toml del usuario de Codex.
+Puente: sólo 127.0.0.1:8769. Si ese puerto está ocupado por otro servicio,
+se informa del conflicto; no se detiene ni sustituye ese proceso.
+
+La clave usa DPAPI de Windows, vinculada al usuario y al equipo. No se incluye
+en el plugin, en el ZIP, en herramientas de chat ni en el archivo config.toml.
+El puente recibe el historial de las peticiones al modelo seleccionado:
+MiniMax va a NVIDIA; los modelos GPT mantienen su ruta OpenAI.
+No registra el contenido de conversaciones ni argumentos de herramientas.
+Una copia de recuperación local de config.toml puede contener tus otras
+credenciales; no la compartas. No se empaqueta ni sube.
+
+USO Y RESTAURACIÓN
+estado_minimax consulta estado; configurar_minimax abre la ventana de clave;
+restaurar_proveedor selecciona el proveedor anterior conservando otros ajustes.
+Antes de desinstalar el plugin, restaura el proveedor y carga esa configuración.
+También puedes ejecutar RESTAURAR PROVEEDOR.cmd.
+No se desinstalan ni eliminan otros modelos o plugins.
+Tras reiniciar Windows, el puente se inicia al cargar el MCP del complemento.
+Si el complemento no se carga aún, pide Configurar MiniMax o usa INSTALAR.cmd.
+
+COMPATIBILIDAD Y LÍMITES
+Texto, imágenes directas y devueltas por herramientas, function/custom/MCP,
+streaming Responses, historial y herramientas cambiadas entre turnos.
+El error de historial exec_command se corrige conservando llamadas antiguas
+sin convertirlas en herramientas nuevas disponibles.
+Se verifica el resumen sin herramientas usado por la compactación local.
+No se implementa /responses/compact remoto de NVIDIA ni se descifra contexto
+opaco de OpenAI. Tampoco se implementan audio, vídeo, búsquedas alojadas de
+OpenAI ni previous_response_id para NVIDIA. No se promete compatibilidad 100%.
+No hay cambio automático a un modelo de pago. NVIDIA determina gratuidad,
+límites de uso y disponibilidad de su Free Endpoint para pruebas/desarrollo.
+
+VALIDACIÓN
+La evidencia de esta versión se entrega en VALIDACION.json junto al ZIP.
+Las pruebas de protocolo usan datos ficticios de software, nunca el expediente
+privado del usuario. No implican haber ejecutado el caso DANA ni sus documentos.
+La instalación en el selector real queda por verificar cuando lo instales.
+
+FUENTES
+https://developers.openai.com/plugins/build/plugins
+https://learn.chatgpt.com/docs/enterprise/gateway-compatibility
+https://build.nvidia.com/minimaxai/minimax-m3.1-flash
+https://docs.api.nvidia.com/nim/docs/product

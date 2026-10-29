@@ -1,0 +1,11 @@
+node_modules/
+work/
+*.log
+*.dpapi
+.env*
+auth.json
+config.toml
+config-before-*.toml
+clave-nvidia.txt
+nvidia-verification.json
+*pending

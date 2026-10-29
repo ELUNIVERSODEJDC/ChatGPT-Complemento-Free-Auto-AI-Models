@@ -1,0 +1,48 @@
+{
+  "version": "0.1.0",
+  "scope": "Local automated protocol and configuration tests; real NVIDIA inference with software fixtures.",
+  "gatewaySHA256": "eeeefc83cc6d93c5506efe90dd06812827e6ff5bf2b3e6e6c96bb3c5e24702f6",
+  "localTests": {
+    "adapterPassed": 34,
+    "pluginPassed": 6
+  },
+  "nvidia": {
+    "superVlHistoryAndImages": {
+      "passed": true,
+      "durationMs": 21255
+    },
+    "miniMaxHistoricalReplay": {
+      "checks": [
+        {
+          "name": "local-compaction-no-tools",
+          "ok": true,
+          "historicalResultPreserved": true
+        },
+        {
+          "name": "changed-current-tools",
+          "ok": true,
+          "historicalResultPreserved": true
+        }
+      ]
+    },
+    "miniMaxImageReplay": {
+      "passed": true,
+      "durationMs": 32309,
+      "observedColor": "red",
+      "textMarkerPreserved": true,
+      "note": "Initial image-text check failed; associated text attachment was corrected and the affected check passed."
+    }
+  },
+  "notVerified": [
+    "Native plugin installation and selector refresh",
+    "Credential dialog visual interaction in a clean installation",
+    "GitHub Actions until an actual run completes"
+  ],
+  "notImplemented": [
+    "Automatic model routing",
+    "NVIDIA remote encrypted compaction",
+    "OpenAI hosted tools for NVIDIA",
+    "Audio/video",
+    "NVIDIA previous_response_id"
+  ]
+}

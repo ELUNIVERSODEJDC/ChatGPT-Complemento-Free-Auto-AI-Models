@@ -1,0 +1,17 @@
+{
+  "name": "minimax-jdc",
+  "version": "0.1.0",
+  "description": "MiniMax M3.1 Flash con tu clave NVIDIA y puente local para Codex.",
+  "author": {"name": "ELUNIVERSODEJDC"},
+  "skills": "./skills",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "MiniMax para Codex JDC",
+    "shortDescription": "MiniMax con tu clave NVIDIA",
+    "longDescription": "Complemento local para Windows. Configuración privada de clave NVIDIA, comprobación de conexión y MiniMax en el selector de Codex. Requiere Node.js 22 o posterior.",
+    "developerName": "ELUNIVERSODEJDC",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": "Configura MiniMax en Codex y abre la ventana local para introducir mi clave NVIDIA."
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "jdc-free-ai-models",
+  "interface": {
+    "displayName": "JDC Free AI Models"
+  },
+  "plugins": [
+    {
+      "name": "minimax-jdc",
+      "source": {
+        "source": "local",
+        "path": "./plugins/minimax-jdc"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
