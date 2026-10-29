@@ -9,7 +9,7 @@ de forma fija; el nombre del repositorio reserva el proyecto para ampliaciones.
 
 ## Instalar o recuperar después de reinstalar Codex
 
-1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.4.zip) y extráelo.
+1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.5.zip) y extráelo.
 2. Instala Node.js 22 o posterior si tu equipo no lo tiene.
 3. Ejecuta `INSTALAR.cmd` e introduce tu **clave de NVIDIA** en la ventana privada.
 4. El instalador prueba la API y sólo activa el proveedor si MiniMax responde.
@@ -47,6 +47,13 @@ a MiniMax. La reducción de tokens y la latencia final en Codex Desktop siguen
 pendientes de medir en un chat nuevo después de recargar el catálogo. Incluso
 un saludo pequeño mostró alrededor de un minuto de espera en NVIDIA durante
 las pruebas; esta versión no promete eliminar la latencia del servicio.
+
+La **0.1.5** corrige el arranque del puente en Windows. Las versiones anteriores
+podían perder el servidor al cerrar el proceso que lo había iniciado, dejando
+el puerto local sin escucha y causando `Connection failed: error sending request`.
+Windows inicia ahora un proceso independiente mediante CIM, sin consola visible,
+servicio ni tarea programada. El servidor guarda su propio PID y registros.
+La regresión comprueba que siga respondiendo tras terminar su lanzador.
 
 ## Clave y almacenamiento
 

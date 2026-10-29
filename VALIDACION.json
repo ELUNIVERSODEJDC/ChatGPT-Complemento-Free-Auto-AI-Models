@@ -1,11 +1,44 @@
 {
-  "version": "0.1.4",
+  "version": "0.1.5",
   "scope": "Local automated protocol and configuration tests; real NVIDIA inference with software fixtures.",
   "gatewaySHA256": "a609d9e8dfc03354f2ee114ed98507ef6d8569204eb53d8de203cc9180d0ee19",
   "localTests": {
     "adapterPassed": 41,
-    "pluginPassed": 9,
+    "pluginPassed": 11,
     "optionalLiveTestsSkippedInSuite": 4
+  },
+  "backgroundLifetime": {
+    "launcher": "Windows CIM Win32_Process.Create",
+    "hidden": true,
+    "survivesLauncherTerminationTested": true,
+    "separateParentVerified": true,
+    "testProcessCleanupVerified": true,
+    "installsService": false,
+    "installsScheduledTask": false
+  },
+  "installedHttpConnection": {
+    "passed": true,
+    "nativeDesktopTest": false,
+    "installedHttpEndpoint": true,
+    "reasoning": "high",
+    "timeoutChanged": false,
+    "httpStatus": 200,
+    "headersMs": 83168,
+    "firstEventMs": 83168,
+    "responseCompleted": true,
+    "exactMarker": true,
+    "usage": {
+      "input_tokens": 441,
+      "input_tokens_details": {
+        "cached_tokens": 128
+      },
+      "output_tokens": 12,
+      "output_tokens_details": {
+        "reasoning_tokens": 7
+      },
+      "total_tokens": 453
+    },
+    "durationMs": 84651
   },
   "codeMode": {
     "bridgeRevision": "codex-code-mode-lite-v3",

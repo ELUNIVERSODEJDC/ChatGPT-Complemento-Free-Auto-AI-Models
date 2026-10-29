@@ -1,6 +1,9 @@
 import { createInterface } from 'node:readline';
+import { appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createGateway, MODEL_SETTINGS, MINIMAX_MODEL } from '../runtime/gateway.mjs';
-import { configure, restore, status, launchBridge, storedKey, PORT } from './management.mjs';
+import { configure, restore, status, launchBridge, storedKey, PORT, DATA } from './management.mjs';
 for (const [model, settings] of MODEL_SETTINGS) settings.listed = model === MINIMAX_MODEL;
 
 const tools = [
@@ -12,11 +15,22 @@ const tools = [
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false } },
 ];
 if (process.argv.includes('--gateway-only')) {
+  mkdirSync(DATA, { recursive: true });
+  const logError = error => appendFileSync(path.join(DATA, 'gateway-error.log'),
+    new Date().toISOString() + ' MiniMax gateway: ' + String(error.code || error.name || 'runtime_error') + '\n');
   const server = createGateway({ keyProvider: storedKey, port: PORT, allowedModels: [MINIMAX_MODEL] });
   server.requestTimeout = 360000;
   server.headersTimeout = 30000;
-  server.on('error', error => { console.error('MiniMax gateway: ' + (error.code || 'listen_error')); process.exitCode = 1; });
-  server.listen(PORT, '127.0.0.1', () => console.log('minimax-jdc gateway pid=' + process.pid));
+  server.on('error', error => { logError(error); process.exitCode = 1; });
+  process.on('uncaughtException', error => { logError(error); process.exit(1); });
+  process.on('unhandledRejection', error => { logError(error || {}); process.exit(1); });
+  server.listen(PORT, '127.0.0.1', () => {
+    const script = fileURLToPath(import.meta.url);
+    writeFileSync(path.join(DATA, 'gateway-process.json'), JSON.stringify({ pid: process.pid,
+      executable: process.execPath, script, cwd: path.resolve(path.dirname(script), '..'),
+      startedAt: new Date().toISOString(), launchMethod: process.env.JDC_GATEWAY_LAUNCH_METHOD || 'direct' }, null, 2));
+    appendFileSync(path.join(DATA, 'gateway.log'), new Date().toISOString() + ' minimax-jdc gateway pid=' + process.pid + '\n');
+  });
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.close(() => process.exit(0)));
 } else {
   // Startup only restores the runtime, never requests a secret or edits config.

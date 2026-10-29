@@ -1,4 +1,4 @@
-MINIMAX PARA CODEX JDC - 0.1.4
+MINIMAX PARA CODEX JDC - 0.1.5
 
 INSTALAR CUANDO QUIERAS
 1. Extrae el ZIP en una carpeta y ejecuta INSTALAR.cmd.
@@ -16,6 +16,9 @@ la configuración se inicia al ejecutar INSTALAR.cmd o pedir Configurar MiniMax.
 El instalador reinicia Codex Desktop de Windows sólo después de comprobar
 la conexión y guardar el proveedor. No lo reinicia si cancelas o falla la prueba.
 La configuración desde la herramienta MCP mantiene el chat abierto.
+Desde 0.1.5, Windows inicia el puente en segundo plano mediante CIM, separado
+del proceso temporal del configurador o MCP. Sobrevive al cierre de su lanzador
+y conserva registros propios. No instala servicios ni tareas programadas.
 La ventana de clave se abre delante de otras ventanas y con el campo enfocado.
 La consola indica apertura, prueba de conexión y activación. Cancelar la ventana
 o alcanzar sus 10 minutos de espera se informa sin cambiar el proveedor.

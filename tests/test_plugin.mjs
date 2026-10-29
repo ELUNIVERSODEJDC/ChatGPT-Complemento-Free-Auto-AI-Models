@@ -2,16 +2,73 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
 import { once } from 'node:events';
-import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { readFileSync, readdirSync, writeFileSync, mkdtempSync, existsSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { configuredText, powerShellEnvironment } from '../plugins/minimax-jdc/scripts/management.mjs';
+import { configuredText, powerShellEnvironment, launchBackgroundProcess } from '../plugins/minimax-jdc/scripts/management.mjs';
 import { marketplaceWithPlugin } from '../plugins/minimax-jdc/scripts/install.mjs';
 import { restartAfterSetup } from '../plugins/minimax-jdc/scripts/restart.mjs';
 import { setProvider } from '../plugins/minimax-jdc/runtime/configurar.mjs';
 import { createGateway, MINIMAX_MODEL } from '../plugins/minimax-jdc/runtime/gateway.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../plugins/minimax-jdc');
+
+test('Windows background server remains reachable after its launching process is terminated', { skip: process.platform !== 'win32', timeout: 25000 }, async () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'minimax lifecycle ü '));
+  const readyFile = path.join(directory, 'ready.json');
+  const serverFile = path.join(directory, 'fixture server.mjs');
+  const parentFile = path.join(directory, 'fixture parent.mjs');
+  writeFileSync(serverFile, 'import http from "node:http";import {writeFileSync} from "node:fs";'
+    + 'const server=http.createServer((req,res)=>res.end("lifecycle-ok"));server.listen(0,"127.0.0.1",()=>writeFileSync('
+    + JSON.stringify(readyFile) + ',JSON.stringify({pid:process.pid,port:server.address().port})));');
+  writeFileSync(parentFile, 'import {launchBackgroundProcess} from '
+    + JSON.stringify(pathToFileURL(path.join(root, 'scripts/management.mjs')).href) + ';'
+    + 'await launchBackgroundProcess(' + JSON.stringify({ executable: process.execPath, script: serverFile, cwd: directory }) + ');'
+    + 'console.log("parent-ready");setInterval(()=>{},1000);');
+  const parent = spawn(process.execPath, [parentFile], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  let fixture;
+  try {
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Independent background launcher did not start')), 18000);
+      parent.stdout.once('data', () => { clearTimeout(timer); resolve(); });
+      parent.once('exit', code => { clearTimeout(timer); reject(new Error('Launcher exited early: ' + code)); });
+    });
+    for (let n = 0; n < 25 && !existsSync(readyFile); n++) await new Promise(resolve => setTimeout(resolve, 100));
+    fixture = JSON.parse(readFileSync(readyFile, 'utf8'));
+    const owner = execFileSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', '[Console]::Write((Get-CimInstance Win32_Process -Filter "ProcessId=' + fixture.pid + '").ParentProcessId)'],
+      { windowsHide: true, timeout: 10000, encoding: 'utf8', env: powerShellEnvironment() });
+    assert.notEqual(Number(owner), parent.pid);
+    const parentExit = once(parent, 'exit'); parent.kill(); await parentExit;
+    assert.equal(await (await fetch('http://127.0.0.1:' + fixture.port, {signal:AbortSignal.timeout(3000)})).text(), 'lifecycle-ok');
+  } finally {
+    if (parent.exitCode === null && parent.signalCode === null) { const done=once(parent,'exit');parent.kill();await done; }
+    if (!fixture && existsSync(readyFile)) fixture=JSON.parse(readFileSync(readyFile,'utf8'));
+    if (fixture) {
+      process.kill(fixture.pid);
+      for (let n=0;n<30;n++) {
+        let running=true;try {process.kill(fixture.pid,0);}catch {running=false;}
+        if(!running)break;
+        await new Promise(resolve=>setTimeout(resolve,100));
+      }
+      assert.throws(()=>process.kill(fixture.pid,0));
+    }
+    assert.equal(path.dirname(directory), path.resolve(tmpdir()));
+    assert.ok(path.basename(directory).startsWith('minimax lifecycle ü '));
+    execFileSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', '$ErrorActionPreference="Stop"; '
+        + '$target=[IO.Path]::GetFullPath($env:JDC_TEST_CLEANUP); '
+        + '$prefix=Join-Path ([IO.Path]::GetTempPath()) "minimax lifecycle "; '
+        + 'if (-not $target.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)) {throw "Invalid fixture cleanup path"}; '
+        + 'Remove-Item -LiteralPath $target -Recurse -Force'],
+      { windowsHide:true,timeout:10000,env:{...powerShellEnvironment(),JDC_TEST_CLEANUP:directory} });
+  }
+});
+
+test('background launcher rejects invalid executable paths before starting Windows', { skip: process.platform !== 'win32' }, async () => {
+  await assert.rejects(launchBackgroundProcess({executable:'bad"path',script:'fixture.mjs',cwd:root}), /Ruta de arranque/);
+});
 
 test('installer restart happens once after a successful probe and a ready provider', async () => {
   const calls = [];

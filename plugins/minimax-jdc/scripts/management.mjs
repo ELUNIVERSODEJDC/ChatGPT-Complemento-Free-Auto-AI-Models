@@ -1,6 +1,6 @@
-import { execFile, spawn } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, copyFileSync, openSync, closeSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, copyFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -68,25 +68,57 @@ export async function health({ allowStale = false } = {}) {
   return result;
 }
 
+// Windows owns the background process, independently of the short-lived
+// installer/MCP/tool process. Node detached/unref alone does not provide that
+// lifetime when the desktop closes its process tree. No service or task is added.
+export async function launchBackgroundProcess({ executable, script, cwd, environment = process.env }) {
+  if (process.platform !== 'win32') throw new Error('El arranque independiente requiere Windows.');
+  const quote = value => {
+    if (/["\r\n]/.test(value)) throw new Error('Ruta de arranque no válida.');
+    return '"' + value.replace(/(\\+)$/, '$1$1') + '"';
+  };
+  const command = quote(executable) + ' ' + quote(script) + ' --gateway-only';
+  const childEnvironment = {};
+  for (const name of ['SystemRoot', 'WINDIR', 'USERPROFILE', 'LOCALAPPDATA', 'APPDATA', 'TEMP', 'TMP', 'PATH',
+    'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432', 'ComSpec', 'CODEX_HOME']) {
+    const actual = Object.keys(environment).find(key => key.toLowerCase() === name.toLowerCase());
+    if (actual && environment[actual] !== undefined) childEnvironment[actual] = environment[actual];
+  }
+  childEnvironment.JDC_GATEWAY_LAUNCH_METHOD = 'windows-cim';
+  const launcher = '$ErrorActionPreference="Stop"; '
+    + '$envItems=[string[]]@((ConvertFrom-Json $env:JDC_BRIDGE_ENV).PSObject.Properties | ForEach-Object { $_.Name + "=" + [string]$_.Value }); '
+    + '$startup=New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly -Property @{ShowWindow=[uint16]0; CreateFlags=[uint32]1032; EnvironmentVariables=$envItems}; '
+    + '$result=Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine=$env:JDC_BRIDGE_COMMAND;CurrentDirectory=$env:JDC_BRIDGE_ROOT;ProcessStartupInformation=$startup}; '
+    + 'if ($result.ReturnValue -ne 0) {throw ("Windows no pudo iniciar el puente: " + $result.ReturnValue)}; '
+    + '[Console]::Write(([pscustomobject]@{pid=[int]$result.ProcessId;method="windows-cim"}|ConvertTo-Json -Compress))';
+  const { stdout } = await run(PS, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', launcher],
+    { windowsHide: true, timeout: 15000, maxBuffer: 8192, env: { ...powerShellEnvironment(),
+      JDC_BRIDGE_COMMAND: command, JDC_BRIDGE_ROOT: cwd, JDC_BRIDGE_ENV: JSON.stringify(childEnvironment) } });
+  const result = JSON.parse(stdout);
+  if (!Number.isSafeInteger(result.pid) || result.pid <= 0) throw new Error('Windows no devolvió un PID válido del puente.');
+  return result;
+}
+
+let launching;
 export async function launchBridge() {
+  if (launching) return launching;
+  launching = startBridge();
+  try { return await launching; } finally { launching = undefined; }
+}
+
+async function startBridge() {
   const running = await health();
   if (running) return running;
   mkdirSync(DATA, { recursive: true });
-  const out = openSync(path.join(DATA, 'gateway.log'), 'a');
-  const err = openSync(path.join(DATA, 'gateway-error.log'), 'a');
-  let child;
-  try {
-    child = spawn(process.execPath, [path.join(ROOT, 'scripts', 'server.mjs'), '--gateway-only'],
-      { cwd: ROOT, windowsHide: true, detached: true, stdio: ['ignore', out, err] });
-    await new Promise((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });
-    writeFileSync(path.join(DATA, 'gateway-process.json'), JSON.stringify({ pid: child.pid, executable: process.execPath,
-      script: path.join(ROOT, 'scripts', 'server.mjs'), cwd: ROOT, startedAt: new Date().toISOString() }, null, 2));
-    child.unref();
-  } finally { closeSync(out); closeSync(err); }
+  const child = await launchBackgroundProcess({ executable: process.execPath,
+    script: path.join(ROOT, 'scripts', 'server.mjs'), cwd: ROOT });
   for (let n = 0; n < 20; n++) {
     await new Promise(resolve => setTimeout(resolve, 250));
     const ready = await health();
-    if (ready) return ready;
+    if (ready) {
+      if (ready.pid !== child.pid) throw new Error('El puerto fue ocupado por otro proceso durante el arranque.');
+      return ready;
+    }
   }
   throw new Error('El puente no arrancó; consulta gateway-error.log en ' + DATA);
 }
