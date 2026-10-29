@@ -1,16 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { once } from 'node:events';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { configuredText } from '../plugins/minimax-jdc/scripts/management.mjs';
+import { configuredText, powerShellEnvironment } from '../plugins/minimax-jdc/scripts/management.mjs';
 import { marketplaceWithPlugin } from '../plugins/minimax-jdc/scripts/install.mjs';
 import { setProvider } from '../plugins/minimax-jdc/runtime/configurar.mjs';
 import { createGateway, MINIMAX_MODEL } from '../plugins/minimax-jdc/runtime/gateway.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../plugins/minimax-jdc');
+
+test('Windows credential encryption works despite incompatible inherited PowerShell module paths', { skip: process.platform !== 'win32' }, () => {
+  const before = process.env.PSModulePath;
+  try {
+    process.env.PSModulePath = path.join(root, 'nonexistent-incompatible-parent-modules');
+    const script = '$ErrorActionPreference="Stop"; $s=ConvertTo-SecureString "fixture-not-a-real-key" -AsPlainText -Force; '
+      + '$cipher=ConvertFrom-SecureString $s; $decoded=ConvertTo-SecureString $cipher; '
+      + '$ptr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($decoded); '
+      + 'try {if ([Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) -ne "fixture-not-a-real-key") {throw "Roundtrip failed"}; [Console]::Write("DPAPI_ROUNDTRIP_OK")} '
+      + 'finally {[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr); $decoded.Dispose(); $s.Dispose()}';
+    const result = execFileSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+      ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
+      { windowsHide: true, timeout: 15000, encoding: 'utf8', env: powerShellEnvironment() });
+    assert.equal(result, 'DPAPI_ROUNDTRIP_OK');
+    assert.equal(process.env.PSModulePath, path.join(root, 'nonexistent-incompatible-parent-modules'));
+  } finally {
+    if (before === undefined) delete process.env.PSModulePath;
+    else process.env.PSModulePath = before;
+  }
+});
 
 test('portable and compatibility manifests and MCP descriptors agree', () => {
   const manifest = JSON.parse(readFileSync(path.join(root, 'plugin.json')));

@@ -17,6 +17,12 @@ export const BASE = 'http://127.0.0.1:' + PORT;
 export const DATA = path.join(process.env.LOCALAPPDATA || path.join(homedir(), 'AppData', 'Local'), 'ELUNIVERSODEJDC', 'MiniMaxCodex');
 export const CONFIG = path.join(process.env.CODEX_HOME || path.join(homedir(), '.codex'), 'config.toml');
 const STATE = path.join(DATA, 'provider-state.json');
+// Node may be launched from PowerShell 7. Its PSModulePath is incompatible with
+// Windows PowerShell 5.1 security modules; isolate only our child process.
+export function powerShellEnvironment(dataDirectory = DATA) {
+  return { ...process.env, JDC_MINIMAX_DATA: dataDirectory,
+    PSModulePath: path.join(path.dirname(PS), 'Modules') };
+}
 const sha = data => createHash('sha256').update(data).digest('hex');
 const selected = text => /^\s*model_provider\s*=\s*["']([^"']+)["']/m.exec(topLevel(text))?.[1] || null;
 const table = '\n[model_providers.' + PROVIDER + ']\nname = "MiniMax NVIDIA JDC + OpenAI"\n'
@@ -43,7 +49,7 @@ export async function storedKey() {
   const script = '$ErrorActionPreference="Stop"; $s=ConvertTo-SecureString ([IO.File]::ReadAllText((Join-Path $env:JDC_MINIMAX_DATA "nvidia-key.dpapi"))); '
     + '$p=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($s); try {[Console]::Write([Runtime.InteropServices.Marshal]::PtrToStringBSTR($p))} finally {[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($p); $s.Dispose()}';
   const { stdout } = await run(PS, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
-    { windowsHide: true, timeout: 10000, maxBuffer: 8192, env: { ...process.env, JDC_MINIMAX_DATA: DATA } });
+    { windowsHide: true, timeout: 10000, maxBuffer: 8192, env: powerShellEnvironment() });
   return stdout.trim() || undefined;
 }
 
@@ -95,7 +101,7 @@ export async function configure({ onProgress = () => {} } = {}) {
   onProgress('Abriendo la ventana «MiniMax para Codex - Clave NVIDIA». Introduce la clave en esa ventana.');
   try {
     await run(PS, ['-NoLogo', '-NoProfile', '-STA', '-Command', credentialScript],
-      { windowsHide: true, timeout: 600000, env: { ...process.env, JDC_MINIMAX_DATA: DATA } });
+      { windowsHide: true, timeout: 600000, env: powerShellEnvironment() });
   } catch (error) {
     if (error.code === 2) throw new Error('Se canceló la ventana de clave. No se ha cambiado el proveedor.');
     if (error.killed) throw new Error('Se agotó la espera de la ventana de clave (10 minutos). No se ha cambiado el proveedor.');

@@ -1,10 +1,15 @@
 {
-  "version": "0.1.1",
+  "version": "0.1.2",
   "scope": "Local automated protocol and configuration tests; real NVIDIA inference with software fixtures.",
   "gatewaySHA256": "eeeefc83cc6d93c5506efe90dd06812827e6ff5bf2b3e6e6c96bb3c5e24702f6",
   "localTests": {
     "adapterPassed": 34,
-    "pluginPassed": 6
+    "pluginPassed": 7
+  },
+  "credentialEncryption": {
+    "saveHandlerRoundtripPassed": true,
+    "incompatibleInheritedModulesRegressionPassed": true,
+    "realCredentialUsedByTests": false
   },
   "nvidia": {
     "superVlHistoryAndImages": {

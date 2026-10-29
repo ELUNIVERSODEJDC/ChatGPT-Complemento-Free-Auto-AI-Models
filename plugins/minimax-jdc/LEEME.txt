@@ -1,4 +1,4 @@
-MINIMAX PARA CODEX JDC - 0.1.1
+MINIMAX PARA CODEX JDC - 0.1.2
 
 INSTALAR CUANDO QUIERAS
 1. Extrae el ZIP en una carpeta y ejecuta INSTALAR.cmd.
@@ -17,6 +17,9 @@ El instalador no cierra ni reinicia Codex por su cuenta.
 La ventana de clave se abre delante de otras ventanas y con el campo enfocado.
 La consola indica apertura, prueba de conexión y activación. Cancelar la ventana
 o alcanzar sus 10 minutos de espera se informa sin cambiar el proveedor.
+Los procesos del configurador aíslan las rutas de módulos de Windows PowerShell
+para cifrar y recuperar la clave aunque el instalador se abra desde PowerShell 7.
+No se cambian variables globales ni la configuración de Windows.
 
 REQUISITOS
 Windows, Node.js 22 o posterior y la sesión habitual de Codex iniciada.

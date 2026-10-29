@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "minimax-jdc",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Configura MiniMax M3.1 Flash de NVIDIA como modelo de Codex mediante un puente local para Windows.",
   "author": {"name": "ELUNIVERSODEJDC"},
   "extensions": {"com.openai": {"interface": {
