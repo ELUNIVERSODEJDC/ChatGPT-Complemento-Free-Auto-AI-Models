@@ -7,10 +7,38 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { configuredText, powerShellEnvironment } from '../plugins/minimax-jdc/scripts/management.mjs';
 import { marketplaceWithPlugin } from '../plugins/minimax-jdc/scripts/install.mjs';
+import { restartAfterSetup } from '../plugins/minimax-jdc/scripts/restart.mjs';
 import { setProvider } from '../plugins/minimax-jdc/runtime/configurar.mjs';
 import { createGateway, MINIMAX_MODEL } from '../plugins/minimax-jdc/runtime/gateway.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../plugins/minimax-jdc');
+
+test('installer restart happens once after a successful probe and a ready provider', async () => {
+  const calls = [];
+  const result = await restartAfterSetup({ liveProbe: true }, {
+    getStatus: async () => { calls.push('status'); return { providerSelected: true, credentialStored: true, gateway: { status: 'running' } }; },
+    restart: async () => { calls.push('restart'); return { restarted: true }; }
+  });
+  assert.deepEqual(calls, ['status', 'restart']);
+  assert.equal(result.restarted, true);
+});
+
+test('failed, cancelled or incomplete setup never restarts Codex', async () => {
+  let restarted = 0;
+  for (const probe of [undefined, {}, { liveProbe: false }]) {
+    await assert.rejects(restartAfterSetup(probe, { restart: async () => { restarted++; } }), /sin una prueba/);
+  }
+  for (const state of [
+    { providerSelected: false, credentialStored: true, gateway: { status: 'running' } },
+    { providerSelected: true, credentialStored: false, gateway: { status: 'running' } },
+    { providerSelected: true, credentialStored: true, gateway: null }
+  ]) {
+    await assert.rejects(restartAfterSetup({ liveProbe: true }, {
+      getStatus: async () => state, restart: async () => { restarted++; }
+    }), /no está listo/);
+  }
+  assert.equal(restarted, 0);
+});
 
 test('Windows credential encryption works despite incompatible inherited PowerShell module paths', { skip: process.platform !== 'win32' }, () => {
   const before = process.env.PSModulePath;

@@ -9,11 +9,12 @@ de forma fija; el nombre del repositorio reserva el proyecto para ampliaciones.
 
 ## Instalar o recuperar después de reinstalar Codex
 
-1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.2.zip) y extráelo.
+1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.3.zip) y extráelo.
 2. Instala Node.js 22 o posterior si tu equipo no lo tiene.
 3. Ejecuta `INSTALAR.cmd` e introduce tu **clave de NVIDIA** en la ventana privada.
 4. El instalador prueba la API y sólo activa el proveedor si MiniMax responde.
-5. Carga la configuración nueva de Codex y selecciona **MiniMax-M3.1-Flash**.
+5. El instalador reinicia Codex automáticamente para cargar la configuración;
+   selecciona **MiniMax-M3.1-Flash**.
 6. En **Plugins**, instala **MiniMax para Codex JDC** desde tu mercado personal
    para disponer de sus herramientas de gestión y de su arranque al cargarlo.
 
@@ -22,7 +23,7 @@ entrada y pedir **«Configura MiniMax»** para abrir el configurador.
 La configuración no se ejecuta automáticamente al descargar el plugin.
 
 El instalador mantiene tu modelo GPT predeterminado y los ajustes ajenos al
-proveedor. No cierra Codex, no instala servicios y no crea tareas de Windows.
+proveedor. No instala servicios y no crea tareas de Windows.
 La lista del selector debe recargarse después de cambiar de proveedor.
 
 La versión **0.1.1** abre el formulario de clave sobre las otras ventanas,
@@ -31,6 +32,10 @@ enfoca su campo y muestra el progreso en consola. Si lo cancelas, transcurren
 La **0.1.2** aísla las rutas de módulos de los procesos de Windows PowerShell
 que cifran y descifran la clave. Corrige la carga de `Microsoft.PowerShell.Security`
 cuando Node hereda las rutas de PowerShell 7, sin cambiar el entorno global.
+La **0.1.3** reinicia Codex Desktop de Windows al terminar `INSTALAR.cmd`,
+únicamente tras una prueba NVIDIA correcta y con el proveedor listo. Identifica
+el ejecutable del paquete `OpenAI.Codex`, cierra sus procesos de escritorio y
+comprueba su reapertura. La configuración MCP mantiene el chat abierto.
 
 ## Clave y almacenamiento
 

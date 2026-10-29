@@ -11,7 +11,7 @@ Si MCP aún no está disponible, ejecuta node con la ruta absoluta scripts/confi
 
 El complemento es local: requiere Windows y Node.js >=22. Sólo añade MiniMax de NVIDIA; mantiene las entradas GPT del catálogo original. No añade Ultra, Super VL ni proveedores de pago. No cambies el modelo de un chat por tu cuenta.
 
-Explica que se requiere cargar la configuración nueva del proveedor y seleccionar MiniMax en el selector. No reinicies ni cierres Codex automáticamente. Comprueba el estado antes de afirmar que está activo. Una prueba del adaptador no demuestra que el selector de la app ya esté actualizado.
+El instalador externo INSTALAR.cmd reinicia Codex automáticamente después de comprobar la conexión y activar el proveedor. La herramienta MCP configurar_minimax y la configuración directa conservan el chat abierto; sólo solicita un reinicio desde ellas si el usuario lo pide expresamente. Tras cargar la configuración, selecciona MiniMax en el selector. Comprueba el estado antes de afirmar que está activo. Una prueba del adaptador no demuestra que el selector de la app ya esté actualizado.
 
 Para uso sin complemento, INSTALAR.cmd prepara el mercado personal, pide la clave y activa el proveedor después de una prueba real. El usuario instala la entrada MiniMax para Codex JDC desde Plugins para disponer de las herramientas de gestión y del arranque al cargar el complemento.
 

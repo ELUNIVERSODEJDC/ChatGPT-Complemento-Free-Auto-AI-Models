@@ -1,11 +1,11 @@
-MINIMAX PARA CODEX JDC - 0.1.2
+MINIMAX PARA CODEX JDC - 0.1.3
 
 INSTALAR CUANDO QUIERAS
 1. Extrae el ZIP en una carpeta y ejecuta INSTALAR.cmd.
 2. Introduce tu clave NVIDIA en la ventana de contraseña. No la pegues en el chat.
 3. El instalador hace una prueba real de MiniMax y configura su proveedor sólo
    si la conexión funciona. Mantiene los modelos GPT y tu modelo predeterminado.
-4. Carga de nuevo la configuración de Codex y selecciona MiniMax-M3.1-Flash.
+4. El instalador reinicia Codex automáticamente. Selecciona MiniMax-M3.1-Flash.
 5. En Plugins, abre tu mercado personal e instala MiniMax para Codex JDC para
    disponer de sus herramientas y del arranque al cargar el complemento.
 
@@ -13,7 +13,9 @@ También puedes instalar la entrada desde un mercado local preparado y pedir
 "Configura MiniMax". El complemento abre la misma ventana privada.
 Los plugins de Codex no ejecutan instaladores automáticamente al descargarse:
 la configuración se inicia al ejecutar INSTALAR.cmd o pedir Configurar MiniMax.
-El instalador no cierra ni reinicia Codex por su cuenta.
+El instalador reinicia Codex Desktop de Windows sólo después de comprobar
+la conexión y guardar el proveedor. No lo reinicia si cancelas o falla la prueba.
+La configuración desde la herramienta MCP mantiene el chat abierto.
 La ventana de clave se abre delante de otras ventanas y con el campo enfocado.
 La consola indica apertura, prueba de conexión y activación. Cancelar la ventana
 o alcanzar sus 10 minutos de espera se informa sin cambiar el proveedor.
