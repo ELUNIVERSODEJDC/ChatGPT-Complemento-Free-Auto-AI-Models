@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { translateRequest, generate, createGateway, MODEL, SUPER_MODEL, MINIMAX_MODEL, DEEPSEEK_MODEL, GLM_MODEL, PLUGIN_MODELS, MODEL_SETTINGS, mergeCatalog, nemotronCatalogEntry } from '../plugins/minimax-jdc/runtime/gateway.mjs';
+import { translateRequest, generate, createGateway, MODEL, SUPER_MODEL, MINIMAX_MODEL, DEEPSEEK_MODEL, GLM_MODEL, KILO_MODEL, PLUGIN_MODELS, MODEL_SETTINGS, mergeCatalog, nemotronCatalogEntry } from '../plugins/minimax-jdc/runtime/gateway.mjs';
 import { setProvider, topLevel, visionFixture } from '../plugins/minimax-jdc/runtime/configurar.mjs';
 import { inflateSync } from 'node:zlib';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -17,6 +17,55 @@ function textChunk(text, finish = null) { return { choices: [{ index: 0, delta: 
 const searchTool = { type: 'tool_search', execution: 'client', description: 'Search the actual Codex deferred tool inventory.',
   parameters: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' } }, required: ['query'], additionalProperties: false } };
 const execTool = { type: 'custom', name: 'exec', description: 'Run JavaScript with client-provided tools.' };
+
+test('Kilo Auto Free uses its anonymous route, preserves tools and never forwards credentials or NVIDIA parameters', async () => {
+  let sent;
+  const result=await generate({model:KILO_MODEL,input:[{type:'additional_tools',role:'developer',tools:[
+    {type:'namespace',name:'functions',tools:[execTool]}]},{role:'user',content:'Call the tool.'}],parallel_tool_calls:true},()=>{},
+    {key:'must-not-leave-client',fetcher:async(url,init)=>{
+      assert.equal(url,'https://ai-gateway.kilo.ai/api/v1/chat/completions');
+      assert.deepEqual(init.headers,{'Content-Type':'application/json'});
+      sent=JSON.parse(init.body);
+      return upstream([{choices:[{index:0,delta:{tool_calls:[{index:0,id:'kilo-call',function:{name:'functions__exec',arguments:'{"input":"text(42);"}'}}]},finish_reason:'tool_calls'}]},'[DONE]']);
+    }});
+  assert.equal(sent.model,'kilo-auto/free');assert.equal(sent.chat_template_kwargs,undefined);
+  assert.equal(sent.reasoning_effort,undefined);assert.equal(sent.parallel_tool_calls,undefined);
+  assert.equal(result.output[0].namespace,'functions');assert.equal(result.output[0].input,'text(42);');
+  assert.equal(result.end_turn,false);
+  const m=MODEL_SETTINGS.get(KILO_MODEL).catalog;
+  assert.deepEqual(m.input_modalities,['text']);assert.equal(m.context_window,256000);
+  assert.throws(()=>translateRequest({model:KILO_MODEL,input:[{role:'user',content:[{type:'input_image',image_url:'data:image/png;base64,x'}]}]}));
+});
+
+test('Kilo HTTP route needs no stored key and rejects retired NVIDIA and paid aliases without external inference', async () => {
+  let calls=0;
+  const server=createGateway({allowedModels:[KILO_MODEL],keyProvider:async()=>{throw new Error('credential read forbidden');},
+    fetcher:async(url,init)=>{
+      if(url.includes('/models?'))return Response.json({models:[]});
+      calls++;assert.ok(url.startsWith('https://ai-gateway.kilo.ai/'));
+      assert.equal(init.headers.Authorization,undefined);
+      return upstream([textChunk('KILO_OK','stop'),'[DONE]']);
+    }});
+  server.listen(0,'127.0.0.1');await once(server,'listening');
+  try{
+    const base='http://127.0.0.1:'+server.address().port;
+    assert.equal((await (await fetch(base+'/health')).json()).authenticationRequired,false);
+    for(const model of [MINIMAX_MODEL,DEEPSEEK_MODEL,GLM_MODEL,'kilo-auto/frontier']){
+      const response=await fetch(base+'/v1/responses',{method:'POST',headers:{Authorization:'Bearer openai-only','Content-Type':'application/json'},body:JSON.stringify({model,input:'hi',stream:false})});
+      assert.equal(response.status,404);await response.body.cancel();
+    }
+    const response=await fetch(base+'/v1/responses',{method:'POST',headers:{Authorization:'Bearer openai-only','Content-Type':'application/json'},body:JSON.stringify({model:KILO_MODEL,input:'hi',stream:false})});
+    assert.equal(response.status,200);assert.equal((await response.json()).output[0].content[0].text,'KILO_OK');assert.equal(calls,1);
+  }finally{server.closeAllConnections();server.close();await once(server,'close');}
+});
+
+test('Kilo quota errors preserve the provider and status without credentials or a paid fallback', async()=>{
+  let calls=0;
+  await assert.rejects(generate({model:KILO_MODEL,input:'hi'},()=>{}, {fetcher:async()=>{
+    calls++;return Response.json({error:{message:'Free quota reached'}},{status:429});
+  }}),error=>error.status===429&&error.code==='kilo_http_429'&&/Free quota/.test(error.message));
+  assert.equal(calls,1);
+});
 const litePrefix = () => ({ type: 'additional_tools', role: 'developer', tools: [
   { type: 'namespace', name: 'functions', tools: [execTool] }, searchTool ] });
 const searchCall = () => ({ type: 'tool_search_call', execution: 'client', call_id: 'discovery_1', status: 'completed', arguments: { query: 'echo marker' } });
@@ -439,11 +488,11 @@ test('catalog preserves original OpenAI entries and adds only listed NVIDIA mode
     assert.equal(response.status, 200);
     const catalog = await response.json();
     assert.deepEqual(catalog.models[0], original);
-    assert.equal(catalog.models[1].slug, SUPER_MODEL);
-    assert.equal(catalog.models.length, 5);
+    assert.equal(catalog.models[1].slug, KILO_MODEL);
+    assert.equal(catalog.models.length, 2);
     assert.equal(catalog.models.some(model => model.slug === MODEL), false);
-    assert.equal(catalog.models.filter(model => model.slug === SUPER_MODEL).length, 1);
-    assert.equal(catalog.models.filter(model => model.slug === MINIMAX_MODEL).length, 1);
+    assert.equal(catalog.models.filter(model => model.slug === SUPER_MODEL).length, 0);
+    assert.equal(catalog.models.filter(model => model.slug === MINIMAX_MODEL).length, 0);
     assert.equal(receivedHeaders['ChatGPT-Account-ID'], 'fake-account');
   } finally { await new Promise(resolve => server.close(resolve)); }
 });
@@ -453,7 +502,7 @@ test('removing Ultra from the picker preserves GPT entries, other models and old
   const upstream = { models: [gpt, { slug: MODEL, display_name: 'Stale Ultra' }] };
   const before = structuredClone(upstream);
   const catalog = mergeCatalog(upstream);
-  assert.deepEqual(catalog.models.map(model => model.slug), [gpt.slug, SUPER_MODEL, ...PLUGIN_MODELS]);
+  assert.deepEqual(catalog.models.map(model => model.slug), [gpt.slug, ...PLUGIN_MODELS]);
   assert.deepEqual(catalog.models[0], gpt);
   assert.deepEqual(upstream, before);
   assert.equal(translateRequest({ model: MODEL, input: 'Existing chat' }).body.model, MODEL);
@@ -688,8 +737,8 @@ test('catalog merge removes stale NVIDIA definitions without changing OpenAI met
   const upstream = { slug: 'unchanged', instructions: 'Keep this exact value.' };
   const result = mergeCatalog({ models: [upstream, { slug: MINIMAX_MODEL, display_name: 'stale' }] });
   assert.deepEqual(result.models[0], upstream);
-  assert.equal(result.models.filter(model => model.slug === MINIMAX_MODEL).length, 1);
-  assert.equal(result.models.find(model => model.slug === MINIMAX_MODEL).display_name, 'MiniMax-M3.1-Flash');
+  assert.equal(result.models.filter(model => model.slug === MINIMAX_MODEL).length, 0);
+  assert.equal(result.models.find(model => model.slug === KILO_MODEL).display_name, 'Kilo Auto Free');
 });
 
 test('vision probe fixture is a valid RGB PNG containing only red pixels', () => {

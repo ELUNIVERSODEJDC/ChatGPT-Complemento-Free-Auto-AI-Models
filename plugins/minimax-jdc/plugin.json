@@ -1,16 +1,16 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "minimax-jdc",
-  "version": "0.1.6",
-  "description": "Añade MiniMax, DeepSeek V4.1 Flash y GLM-5.3-Flash de NVIDIA al selector de Codex mediante un puente local para Windows.",
+  "version": "0.2.0",
+  "description": "Integra Auto Free de Kilo en el selector de Codex mediante un puente local para Windows, sin clave API.",
   "author": {"name": "ELUNIVERSODEJDC"},
   "extensions": {"com.openai": {"interface": {
-    "displayName": "MiniMax para Codex JDC",
-    "shortDescription": "MiniMax con tu clave NVIDIA",
-    "longDescription": "Complemento local para Windows. Configura tu clave NVIDIA en una ventana privada y añade MiniMax, DeepSeek V4.1 Flash y GLM-5.3-Flash al selector conservando los modelos GPT. Requiere Node.js 22 o posterior. Usa Configurar MiniMax al instalarlo o ejecuta INSTALAR.cmd.",
+    "displayName": "Auto Free para Codex JDC",
+    "shortDescription": "Auto Free de Kilo sin clave",
+    "longDescription": "Añade Kilo Auto Free al selector conservando GPT. Kilo elige el modelo gratuito disponible. Sin clave API; requiere Windows y Node.js 22 o posterior. Texto y herramientas. Límites por IP; las consultas pueden ser registradas por los proveedores. Ejecuta INSTALAR.cmd o Configurar Auto Free.",
     "developerName": "ELUNIVERSODEJDC",
     "category": "Developer Tools",
     "capabilities": ["Read", "Write"],
-    "defaultPrompt": "Configura MiniMax en Codex y abre la ventana local para introducir mi clave NVIDIA."
+    "defaultPrompt": "Configura Kilo Auto Free en el selector de Codex."
   }}}
 }

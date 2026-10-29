@@ -1,17 +1,17 @@
 {
   "name": "minimax-jdc",
-  "version": "0.1.6",
-  "description": "MiniMax, DeepSeek V4.1 Flash y GLM-5.3-Flash con tu clave NVIDIA y puente local para Codex.",
+  "version": "0.2.0",
+  "description": "Auto Free de Kilo en el selector de Codex, sin clave API y con puente local.",
   "author": {"name": "ELUNIVERSODEJDC"},
   "skills": "./skills",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "MiniMax para Codex JDC",
-    "shortDescription": "MiniMax con tu clave NVIDIA",
-    "longDescription": "Complemento local para Windows. Clave NVIDIA privada, comprobación de conexión y MiniMax, DeepSeek V4.1 Flash y GLM-5.3-Flash en el selector de Codex. Requiere Node.js 22 o posterior.",
+    "displayName": "Auto Free para Codex JDC",
+    "shortDescription": "Auto Free de Kilo sin clave",
+    "longDescription": "Kilo elige el modelo gratuito disponible. Texto y herramientas; sin clave API. Requiere Windows y Node.js 22 o posterior. Conserva GPT. Límites por IP; las consultas pueden ser registradas por los proveedores.",
     "developerName": "ELUNIVERSODEJDC",
     "category": "Developer Tools",
     "capabilities": ["Read", "Write"],
-    "defaultPrompt": "Configura MiniMax en Codex y abre la ventana local para introducir mi clave NVIDIA."
+    "defaultPrompt": "Configura Kilo Auto Free en el selector de Codex."
   }
 }

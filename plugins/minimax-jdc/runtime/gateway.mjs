@@ -12,9 +12,10 @@ export const SUPER_MODEL = 'nvidia/nemotron-3.5-super-vl-120b-a12b';
 export const MINIMAX_MODEL = 'minimaxai/minimax-m3.1-flash';
 export const DEEPSEEK_MODEL = 'deepseek-ai/deepseek-v4.1-flash';
 export const GLM_MODEL = 'z-ai/glm-5.3-flash';
-export const PLUGIN_MODELS = [MINIMAX_MODEL, DEEPSEEK_MODEL, GLM_MODEL];
+export const KILO_MODEL = 'kilo-auto/free';
+export const PLUGIN_MODELS = [KILO_MODEL];
 export const PORT = 8768;
-export const BRIDGE_REVISION = 'codex-multi-model-lite-v4';
+export const BRIDGE_REVISION = 'kilo-auto-free-v1';
 export const DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const execute = promisify(execFile);
 const OPENAI = 'https://chatgpt.com/backend-api/codex';
@@ -94,14 +95,14 @@ const codeModeCatalog = { tool_mode: 'code_mode_only', supports_search_tool: tru
 export const MODEL_SETTINGS = new Map([
   [MODEL, { kind: 'ultra', listed: false, validationRevision: 1, structuredOutput: false, vision: false, probeEffort: 'none',
     temperature: 0.6, topP: 0.95, catalog: nemotronCatalogEntry }],
-  [SUPER_MODEL, { kind: 'super35', validationRevision: 3, structuredOutput: true, structuredTransport: 'complete', vision: true, probeEffort: 'none',
+  [SUPER_MODEL, { kind: 'super35', listed: false, validationRevision: 3, structuredOutput: true, structuredTransport: 'complete', vision: true, probeEffort: 'none',
     temperature: 1.0, topP: 0.95, catalog: {
       ...nemotronCatalogEntry, slug: SUPER_MODEL, display_name: 'NVIDIA Nemotron 3.5 Super VL',
       description: 'Texto, imágenes, herramientas y JSON con esquema mediante NVIDIA API.',
       default_reasoning_level: 'low', supported_reasoning_levels: reasoningPresets(['none', 'low', 'high']),
       priority: 101, input_modalities: ['text', 'image'], context_window: 262144, max_context_window: 262144,
     } }],
-  [MINIMAX_MODEL, { kind: 'minimax31', validationRevision: 3, structuredOutput: true, vision: true, probeEffort: 'low',
+  [MINIMAX_MODEL, { kind: 'minimax31', listed: false, validationRevision: 3, structuredOutput: true, vision: true, probeEffort: 'low',
     temperature: 1.0, topP: 0.95, catalog: {
       ...nemotronCatalogEntry, slug: MINIMAX_MODEL, display_name: 'MiniMax-M3.1-Flash',
       description: 'Código, agentes, imágenes, herramientas y JSON con esquema mediante NVIDIA API.',
@@ -111,19 +112,26 @@ export const MODEL_SETTINGS = new Map([
       ...codeModeCatalog,
       priority: 102, input_modalities: ['text', 'image'], context_window: 262144, max_context_window: 262144,
     } }],
-  [DEEPSEEK_MODEL, { kind: 'deepseek41', validationRevision: 1, structuredOutput: true, structuredTransport: 'complete', vision: true, probeEffort: 'low',
+  [DEEPSEEK_MODEL, { kind: 'deepseek41', listed: false, validationRevision: 1, structuredOutput: true, structuredTransport: 'complete', vision: true, probeEffort: 'low',
     temperature: 1.0, topP: 0.95, reasoningValues: { low: 25, high: 50, xhigh: 75, max: 100 }, catalog: {
       ...nemotronCatalogEntry, ...codeModeCatalog, slug: DEEPSEEK_MODEL, display_name: 'DeepSeek V4.1 Flash',
       description: 'Texto, imágenes y herramientas mediante NVIDIA. Contexto de 1M tokens.',
       default_reasoning_level: 'high', supported_reasoning_levels: reasoningPresets(['low', 'high', 'xhigh', 'max']),
       priority: 103, input_modalities: ['text', 'image'], context_window: 1048576, max_context_window: 1048576,
     } }],
-  [GLM_MODEL, { kind: 'glm53', validationRevision: 1, structuredOutput: true, structuredTransport: 'complete', vision: true, maxImages: 8, probeEffort: 'low',
+  [GLM_MODEL, { kind: 'glm53', listed: false, validationRevision: 1, structuredOutput: true, structuredTransport: 'complete', vision: true, maxImages: 8, probeEffort: 'low',
     temperature: 0.5, topP: 1, catalog: {
       ...nemotronCatalogEntry, ...codeModeCatalog, slug: GLM_MODEL, display_name: 'GLM-5.3-Flash',
       description: 'Texto, hasta 8 imágenes y herramientas mediante NVIDIA. Contexto de 1M tokens.',
       default_reasoning_level: 'high', supported_reasoning_levels: reasoningPresets(['low', 'high', 'max']),
       priority: 104, input_modalities: ['text', 'image'], context_window: 1048576, max_context_window: 1048576,
+    } }],
+  [KILO_MODEL, { kind: 'kilo', anonymous: true, endpoint: 'https://ai-gateway.kilo.ai/api/v1/chat/completions',
+    structuredOutput: false, vision: false, temperature: 1, topP: 1, catalog: {
+      ...nemotronCatalogEntry, ...codeModeCatalog, slug: KILO_MODEL, display_name: 'Kilo Auto Free',
+      description: 'Enrutamiento gratuito de Kilo. El modelo cambia según disponibilidad. Texto y herramientas; sin clave.',
+      default_reasoning_level: 'none', supported_reasoning_levels: reasoningPresets(['none']),
+      priority: 102, input_modalities: ['text'], context_window: 256000, max_context_window: 256000,
     } }],
 ]);
 
@@ -346,7 +354,7 @@ export function translateRequest(request) {
   const body = { model: request.model, messages, stream: true, stream_options: { include_usage: true },
     max_tokens: Math.min(request.max_output_tokens || 32768, 32768),
     temperature: request.temperature ?? settings.temperature, top_p: request.top_p ?? settings.topP };
-  if (typeof request.parallel_tool_calls === 'boolean') body.parallel_tool_calls = request.parallel_tool_calls;
+  if (typeof request.parallel_tool_calls === 'boolean' && settings.kind !== 'kilo') body.parallel_tool_calls = request.parallel_tool_calls;
   if (settings.kind === 'ultra') body.chat_template_kwargs = effort === 'none' ? { enable_thinking: false }
     : effort === 'high' ? { enable_thinking: true } : { enable_thinking: true, medium_effort: true };
   else if (settings.kind === 'super35') body.chat_template_kwargs = effort === 'none' ? { enable_thinking: false }
@@ -356,7 +364,10 @@ export function translateRequest(request) {
     body.reasoning_effort = effort;
     body.chat_template_kwargs = { clear_thinking: true };
   }
-  else body.chat_template_kwargs = { reasoning_effort: effort };
+  else if (settings.kind !== 'kilo') body.chat_template_kwargs = { reasoning_effort: effort };
+  // Auto Free owns model selection and reasoning. Do not send an NVIDIA chat
+  // template, a forced provider or a paid fallback to this anonymous route.
+  if (settings.kind === 'kilo') { delete body.top_p; delete body.temperature; }
   const format = request.text?.format;
   if (format && format.type !== 'text') {
     if (!settings.structuredOutput) fail(400, 'structured_output_unsupported', 'El modelo elegido no anuncia salida estructurada.');
@@ -418,11 +429,12 @@ export async function generate(request, emit, options = {}) {
   // DeepSeek/GLM use this path too; ordinary text and tool calls remain SSE.
   const completeStructuredResponse = MODEL_SETTINGS.get(request.model).structuredTransport === 'complete' && body.response_format?.type === 'json_schema';
   if (completeStructuredResponse) { body.stream = false; delete body.stream_options; }
-  const key = options.key ?? await getKey();
-  if (!key) fail(503, 'nvidia_key_missing', 'Este proceso no encuentra NVIDIA_API_KEY. Ruta alternativa: clave-nvidia.txt junto al lanzador.');
+  const settings = MODEL_SETTINGS.get(request.model);
+  const key = settings.anonymous ? undefined : (options.key ?? await getKey());
+  if (!settings.anonymous && !key) fail(503, 'nvidia_key_missing', 'Este proceso no encuentra NVIDIA_API_KEY. Ruta alternativa: clave-nvidia.txt junto al lanzador.');
   const signal = options.signal || AbortSignal.timeout(300_000);
-  const upstream = await (options.fetcher || fetch)(NVIDIA, { method: 'POST',
-    headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+  const upstream = await (options.fetcher || fetch)(settings.endpoint || NVIDIA, { method: 'POST',
+    headers: { ...(!settings.anonymous ? { Authorization: 'Bearer ' + key } : {}), 'Content-Type': 'application/json' },
     body: JSON.stringify(body), signal, redirect: 'error' });
   if (!upstream.ok) {
     let detail = '';
@@ -432,8 +444,10 @@ export async function generate(request, emit, options = {}) {
       else if (typeof error.error?.message === 'string') detail = error.error.message;
       else if (typeof error.detail === 'string') detail = error.detail;
     } catch { /* Preserve HTTP status without reflecting an untrusted HTML response. */ }
-    detail = detail.replaceAll(key, '[redacted]').replace(/nvapi-[\w-]+/g, '[redacted]').slice(0, 500);
-    fail(upstream.status, 'nvidia_http_' + upstream.status, 'NVIDIA ha devuelto HTTP ' + upstream.status + ' para ' + request.model + '.' + (detail ? ' ' + detail : ''));
+    detail = (key ? detail.replaceAll(key, '[redacted]') : detail).replace(/nvapi-[\w-]+/g, '[redacted]').slice(0, 500);
+    const provider = settings.kind === 'kilo' ? 'Kilo Auto Free' : 'NVIDIA';
+    fail(upstream.status, (settings.kind === 'kilo' ? 'kilo_http_' : 'nvidia_http_') + upstream.status,
+      provider + ' ha devuelto HTTP ' + upstream.status + ' para ' + request.model + '.' + (detail ? ' ' + detail : ''));
   }
   if (!completeStructuredResponse && !upstream.headers.get('content-type')?.includes('text/event-stream')) {
     await upstream.body?.cancel(); fail(502, 'expected_sse', 'NVIDIA no devolvió un flujo SSE.');
@@ -589,10 +603,12 @@ export function createGateway(options = {}) {
       if (req.headers.origin && req.headers.origin !== 'http://' + host) fail(403, 'origin_not_allowed', 'Origen web no autorizado.');
       if (url.pathname === '/health' && req.method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        const anonymous = options.allowedModels?.every(model => MODEL_SETTINGS.get(model)?.anonymous === true);
         res.end(JSON.stringify({ service: 'nemotron-codex', pid: process.pid, model: options.allowedModels?.[0] || MODEL,
           bridgeRevision: BRIDGE_REVISION,
-          models: listedModelSettings().map(settings => settings.catalog.slug),
-          keyAvailable: Boolean(await keyProvider()), status: 'running', bind: '127.0.0.1', port: listenPort })); return;
+          models: listedModelSettings().map(settings => settings.catalog.slug), provider: anonymous ? 'kilo' : 'nvidia',
+          authenticationRequired: !anonymous, keyAvailable: anonymous ? false : Boolean(await keyProvider()),
+          status: 'running', bind: '127.0.0.1', port: listenPort })); return;
       }
       const headers = credentials(req);
       if (url.pathname === '/v1/models' && req.method === 'GET') {
@@ -620,13 +636,14 @@ export function createGateway(options = {}) {
           }
           res.write('event: ' + event.type + '\ndata: ' + JSON.stringify(event) + '\n\n');
         };
-        const key = await keyProvider();
-        if (!key) fail(503, 'nvidia_key_missing', 'Falta configurar la clave NVIDIA del puente.');
+        const anonymous = MODEL_SETTINGS.get(request.model).anonymous;
+        const key = anonymous ? undefined : await keyProvider();
+        if (!anonymous && !key) fail(503, 'nvidia_key_missing', 'Falta configurar la clave NVIDIA del puente.');
         const result = await generate(request, send, { key, fetcher, signal: AbortSignal.any([controller.signal, AbortSignal.timeout(300_000)]) });
         if (request.stream === false) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(result)); }
         else res.end();
       } else {
-        if (/^(nvidia|minimaxai|deepseek-ai|z-ai)\//.test(request.model || '')) {
+        if (/^(nvidia|minimaxai|deepseek-ai|z-ai|kilo-auto)\//.test(request.model || '')) {
           fail(404, 'unknown_model', 'Ese modelo NVIDIA no está registrado en el puente.');
         }
         const target = url.pathname.replace('/v1', '');
@@ -651,7 +668,7 @@ export function createGateway(options = {}) {
         const status = error instanceof GatewayError ? error.status : 502;
         const safe = { type: 'error', code: error instanceof GatewayError ? error.code : 'gateway_transport_error',
           message: error instanceof GatewayError ? error.message : 'Error de conexión con el proveedor. Consulte el estado local.' };
-        if (!res.headersSent) { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: safe })); }
+      if (!res.headersSent) { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: safe })); }
         else res.end('event: error\ndata: ' + JSON.stringify(safe) + '\n\n');
       }
     } finally { if (heartbeat) clearInterval(heartbeat); }

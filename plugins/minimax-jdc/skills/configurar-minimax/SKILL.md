@@ -1,20 +1,18 @@
 ---
 name: configurar-minimax
-description: Configurar, comprobar o restaurar MiniMax M3.1 Flash en el selector de Codex mediante NVIDIA y un puente local para Windows.
+description: Configurar, comprobar o restaurar Auto Free de Kilo en el selector de Codex mediante el complemento JDC para Windows.
 ---
 
-Usa el servidor MCP minimax-jdc. Para una petición expresa de configurar o activar MiniMax, llama a configurar_minimax. El usuario introduce la clave NVIDIA en una ventana local con texto oculto; nunca le pidas que pegue la clave en el chat, ni la pases como argumento de herramienta, ni leas el archivo cifrado para mostrarlo.
+El identificador minimax-jdc y el nombre técnico de esta skill se conservan para actualizar la instalación anterior. El complemento visible es Auto Free para Codex JDC; ya no configura modelos de NVIDIA.
 
-Para consultar el estado usa estado_minimax. Para volver al proveedor anterior, sólo si el usuario lo pide, usa restaurar_proveedor. Desactivar o desinstalar el plugin no restaura automáticamente el proveedor: restaura primero y después desinstala.
+Para una petición expresa de activar Auto Free, usa configurar_auto_free del servidor MCP minimax-jdc. Para consultar el estado usa estado_auto_free. Para volver al proveedor anterior, sólo si el usuario lo pide, usa restaurar_proveedor antes de desinstalar.
 
-Si MCP aún no está disponible, ejecuta node con la ruta absoluta scripts/configure.mjs dentro de la raíz instalada del plugin. No invoques codex.exe ni modifiques la instalación de Codex. No cambies ACL, políticas de ejecución, permisos ni servicios de Windows.
+No solicites claves NVIDIA ni Kilo: la ruta kilo-auto/free permite acceso anónimo. Nunca leas, descifres ni envíes una credencial histórica. No actives rutas de pago ni cambies el modelo de un chat por tu cuenta.
 
-El complemento es local: requiere Windows y Node.js >=22. Añade MiniMax M3.1 Flash, DeepSeek V4.1 Flash y GLM-5.3-Flash mediante la misma clave NVIDIA; mantiene las entradas GPT del catálogo original. No añade Ultra, Super VL ni proveedores de pago. No cambies el modelo de un chat por tu cuenta.
+Si MCP no está cargado, ejecuta node con la ruta absoluta scripts/configure.mjs dentro de la raíz instalada. No invoques codex.exe, cambies ACL, políticas de ejecución ni servicios de Windows.
 
-El instalador externo INSTALAR.cmd reinicia Codex automáticamente después de comprobar la conexión y activar el proveedor. La herramienta MCP configurar_minimax y la configuración directa conservan el chat abierto; sólo solicita un reinicio desde ellas si el usuario lo pide expresamente. Tras cargar la configuración, selecciona MiniMax en el selector. Comprueba el estado antes de afirmar que está activo. Una prueba del adaptador no demuestra que el selector de la app ya esté actualizado.
+INSTALAR.cmd registra el complemento, verifica una respuesta real y reinicia Codex después de activar el proveedor. MCP y la configuración directa conservan el chat abierto; el reinicio directo requiere petición expresa. Elige Kilo Auto Free tras recargar el selector. Una prueba del catálogo no demuestra que la interfaz ya se haya actualizado.
 
-Para uso sin complemento, INSTALAR.cmd prepara el mercado personal, pide la clave y activa el proveedor después de una prueba real. El usuario instala la entrada MiniMax para Codex JDC desde Plugins para disponer de las herramientas de gestión y del arranque al cargar el complemento.
+El complemento conserva GPT y presenta una única ruta externa: kilo-auto/free. Kilo selecciona los modelos gratuitos disponibles; la selección y capacidades pueden variar. El catálogo consultado anuncia texto, herramientas y 256000 tokens de contexto; no anuncia imágenes ni razonamiento ajustable. No inventes búsquedas alojadas, resultados o compatibilidad universal.
 
-Compatibilidad: texto, imágenes directas y de herramientas, herramientas function/custom/MCP, historial completo, cambios de herramientas entre turnos y resumen local. Las herramientas alojadas de OpenAI, audio/vídeo y el contexto cifrado por otro proveedor no se convierten en capacidades de NVIDIA. Nunca prometas compatibilidad universal ni inventes resultados. Consulta LEEME.txt para los límites y la restauración.
-
-MiniMax usa Code Mode y la búsqueda de herramientas del cliente con declaraciones Responses Lite, como la presentación del cliente de Terra/Luna. No reduzcas el historial, el razonamiento ni el timeout como sustituto de ese contrato. La espera de NVIDIA y la latencia de un chat nativo deben medirse por separado; un resultado del adaptador no demuestra una mejora de tokens en Codex Desktop.
+El acceso anónimo tiene límites por IP. Los proveedores gratuitos pueden registrar consultas y usarlas para mejorar sus servicios; evita contenido confidencial. Consulta LEEME.txt. La integración es independiente y no es un producto oficial de Kilo ni de OpenAI.

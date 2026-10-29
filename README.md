@@ -1,160 +1,47 @@
-# ChatGPT Complemento Free Auto AI Models
+# Auto Free para Codex JDC
 
-**MiniMax para Codex JDC** es un complemento local para Windows que añade
-modelos NVIDIA al selector de Codex mediante un puente local. Desde 0.1.6 incluye:
+Complemento para Windows que añade **Kilo Auto Free** al selector de Codex y conserva los modelos GPT. Usa la ruta real `kilo-auto/free`: Kilo selecciona los modelos gratuitos disponibles. No instala Kilo Code ni replica su algoritmo de selección.
 
-| Modelo | Identificador NVIDIA | Contexto | Razonamiento |
-| --- | --- | --- | --- |
-| MiniMax M3.1 Flash | `minimaxai/minimax-m3.1-flash` | 262.144 | low, medium, high, xhigh, max |
-| DeepSeek V4.1 Flash | `deepseek-ai/deepseek-v4.1-flash` | 1.048.576 | low, high, xhigh, max |
-| GLM-5.3-Flash | `z-ai/glm-5.3-flash` | 1.048.576 | low, high, max |
+La versión 0.2.0 sustituye las tres entradas de NVIDIA. No necesita clave API. Mantiene la identidad `minimax-jdc` para actualizar la instalación anterior.
 
-Los tres admiten texto, imágenes y herramientas. Usan la misma clave NVIDIA y
-conservan las entradas GPT del catálogo original. La salida del puente está
-limitada a 32.768 tokens por petición. GLM admite hasta ocho imágenes por petición.
+## Instalación
 
-El modo **Auto** todavía no está implementado. El usuario elige el modelo en
-el selector; el complemento no cambia el modelo de los chats por su cuenta.
+1. Instala Node.js 22 o posterior.
+2. Descarga [minimax-jdc-0.2.0.zip](dist/minimax-jdc-0.2.0.zip), extrae la carpeta y ejecuta `INSTALAR.cmd`.
+3. El instalador registra el complemento, verifica una respuesta real y activa el proveedor. Después reinicia Codex.
+4. Activa **Auto Free para Codex JDC** en Plugins para arrancar el puente automáticamente y selecciona **Kilo Auto Free** en el selector.
 
-## Instalar o recuperar después de reinstalar Codex
+La instalación en curso desde un chat puede usar `node scripts/install.mjs --no-restart` para conservarlo abierto y recargar Codex al terminar. El comando normal de instalación conserva el reinicio automático pedido por el usuario.
 
-1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.6.zip) y extráelo.
-2. Instala Node.js 22 o posterior si tu equipo no lo tiene.
-3. Ejecuta `INSTALAR.cmd` e introduce tu **clave de NVIDIA** en la ventana privada.
-4. El instalador prueba la API y sólo activa el proveedor si MiniMax responde.
-5. El instalador reinicia Codex automáticamente para cargar la configuración;
-   selecciona **MiniMax-M3.1-Flash**, **DeepSeek V4.1 Flash** o **GLM-5.3-Flash**.
-6. En **Plugins**, instala **MiniMax para Codex JDC** desde tu mercado personal
-   para disponer de sus herramientas de gestión y de su arranque al cargarlo.
+## Cómo funciona
 
-También puedes agregar este repositorio como mercado de plugins, instalar la
-entrada y pedir **«Configura MiniMax»** para abrir el configurador.
-La configuración no se ejecuta automáticamente al descargar el plugin.
+`Codex (Responses HTTP) → puente local → Kilo (Chat Completions) → kilo-auto/free`
 
-El instalador mantiene tu modelo GPT predeterminado y los ajustes ajenos al
-proveedor. No instala servicios y no crea tareas de Windows.
-La lista del selector debe recargarse después de cambiar de proveedor.
+El adaptador conserva Code Mode, Responses Lite, herramientas custom/function con namespaces, descubrimiento del cliente, historial y resultados. Los GPT se reenvían a OpenAI con su autenticación original. La ruta gratuita no recibe la sesión OpenAI ni la clave NVIDIA histórica. No se activa ninguna ruta de pago.
 
-La versión **0.1.1** abre el formulario de clave sobre las otras ventanas,
-enfoca su campo y muestra el progreso en consola. Si lo cancelas, transcurren
-10 minutos o PowerShell falla, comunica la causa y conserva el proveedor anterior.
-La **0.1.2** aísla las rutas de módulos de los procesos de Windows PowerShell
-que cifran y descifran la clave. Corrige la carga de `Microsoft.PowerShell.Security`
-cuando Node hereda las rutas de PowerShell 7, sin cambiar el entorno global.
-La **0.1.3** reinicia Codex Desktop de Windows al terminar `INSTALAR.cmd`,
-únicamente tras una prueba NVIDIA correcta y con el proveedor listo. Identifica
-el ejecutable del paquete `OpenAI.Codex`, cierra sus procesos de escritorio y
-comprueba su reapertura. La configuración MCP mantiene el chat abierto.
-La **0.1.4** cambia la presentación de herramientas de MiniMax a la misma ruta
-del cliente que Terra/Luna: `code_mode_only`, búsqueda ejecutada por Codex y
-declaraciones incrementales Responses Lite. El adaptador traduce esos elementos
-a Chat Completions de NVIDIA y conserva namespaces, resultados y fin de turno.
-No recorta el historial, reduce el razonamiento ni cambia el timeout.
+El catálogo de Kilo consultado el 29 de octubre de 2026 anuncia 256000 tokens de contexto, hasta 32768 de salida, texto y herramientas. Auto Free no anuncia imágenes ni un esfuerzo de razonamiento seleccionable; se muestran esas capacidades reales. Kilo puede cambiar los modelos disponibles.
 
-Se han comprobado los contratos con herramientas de software y llamadas reales
-a MiniMax. La reducción de tokens y la latencia final en Codex Desktop siguen
-pendientes de medir en un chat nuevo después de recargar el catálogo. Incluso
-un saludo pequeño mostró alrededor de un minuto de espera en NVIDIA durante
-las pruebas; esta versión no promete eliminar la latencia del servicio.
+## Actualización y restauración
 
-La **0.1.5** corrige el arranque del puente en Windows. Las versiones anteriores
-podían perder el servidor al cerrar el proceso que lo había iniciado, dejando
-el puerto local sin escucha y causando `Connection failed: error sending request`.
-Windows inicia ahora un proceso independiente mediante CIM, sin consola visible,
-servicio ni tarea programada. El servidor guarda su propio PID y registros.
-La regresión comprueba que siga respondiendo tras terminar su lanzador.
-La **0.1.6** añade DeepSeek V4.1 Flash y GLM-5.3-Flash al mismo catálogo y
-proveedor. Ambos usan Code Mode, búsqueda de herramientas y Responses Lite.
-DeepSeek traduce sus niveles a presupuesto numérico 25/50/75/100; GLM conserva
-`low/high/max` y usa `clear_thinking=true` en su plantilla de chat. Los niveles
-anunciados se validan antes de enviar la petición. El límite de ocho imágenes de
-GLM se comprueba también en los resultados de herramientas, sin eliminar imágenes.
+La identidad `minimax-jdc`, la carpeta de datos heredada y el puerto local se mantienen. La clave NVIDIA cifrada existente se conserva sin leerla ni enviarla. El instalador ya no incluye su ventana de clave. La configuración sólo migra la tabla exacta conocida del complemento y conserva el resto de `config.toml` y el proveedor anterior registrado.
 
-Estado de validación de los modelos añadidos en 0.1.6: el catálogo instalado y
-la traducción local están comprobados. Las primeras pruebas de inferencia real
-con esquema JSON no completaron dentro de los cinco minutos permitidos por
-petición, tanto en streaming como sin streaming. No se declara validado el uso
-real de herramientas o imágenes de estos dos endpoints por haberlos registrado
-en el selector. Los resultados y las pruebas de disponibilidad de texto figuran
-en `VALIDACION.json`; la disponibilidad anunciada por NVIDIA no garantiza una
-respuesta durante una prueba concreta.
-En la comprobación de texto simple del 29 de octubre de 2026, GLM devolvió el
-marcador esperado en 299,8 segundos; DeepSeek no completó antes de 300 segundos.
-La inferencia real con herramientas e imágenes de ambos modelos queda pendiente.
+Los chats con un modelo NVIDIA deben cambiarse a Kilo Auto Free o sustituirse por un chat nuevo. Las entradas anteriores ya no se muestran ni aceptan peticiones de inferencia.
 
-## Clave y almacenamiento
+MCP ofrece `estado_auto_free`, `configurar_auto_free` y `restaurar_proveedor`. Los nombres antiguos de gestión son alias para continuidad. Ejecuta `RESTAURAR PROVEEDOR.cmd` antes de desinstalar si deseas volver al proveedor anterior.
 
-La clave se introduce en una ventana con texto oculto y se guarda con DPAPI,
-vinculada a tu usuario de Windows y equipo. No se escribe en el chat ni en
-`config.toml`. Si reinstalas Windows o cambias de equipo, introdúcela otra vez.
+## Acceso gratuito y datos
 
-El código queda en `%USERPROFILE%\.codex\plugins\minimax-jdc`; la clave cifrada,
-los registros y la recuperación local están en
-`%LOCALAPPDATA%\ELUNIVERSODEJDC\MiniMaxCodex`.
-Los datos de usuario y claves **no forman parte de este repositorio**.
+Kilo documenta acceso anónimo limitado a 200 peticiones por hora e IP. La disponibilidad y velocidad dependen del servicio; no se garantiza una latencia. Los proveedores gratuitos pueden registrar consultas y usarlas para mejorar sus servicios. No emplees esta ruta con datos personales o confidenciales.
 
-El puente escucha sólo en `127.0.0.1:8769`. Los tres modelos añadidos utilizan NVIDIA; las
-peticiones GPT mantienen la ruta OpenAI y su credencial no se envía a NVIDIA.
-Usa el endpoint NVIDIA marcado como Free Endpoint, sujeto a su disponibilidad,
-condiciones y límites. No cambia a una alternativa de pago automáticamente.
+## Validación
 
-## Qué está comprobado
+`VALIDACION.json` contiene la evidencia de esta versión y distingue pruebas del adaptador, consultas reales y funcionamiento del selector nativo. Una respuesta HTTP o un catálogo correcto no prueban por sí solos una conversación completa en Codex. La suite usa `node --test tests/test_gateway.mjs tests/test_plugin.mjs`.
 
-- Traducción Responses a Chat Completions con eventos SSE y finalización.
-- Herramientas function/custom/MCP, llamadas paralelas e historial completo.
-- Continuación con herramientas usadas anteriormente y retiradas del conjunto actual.
-- Resumen sin herramientas, usado por la compactación local.
-- Imágenes directas y devueltas por herramientas, conservando su texto asociado.
-- JSON por esquema y conservación de catálogo/configuración de modelos GPT.
-- Descubrimiento y consulta de las tres herramientas MCP del complemento.
-- Búsqueda de herramientas del cliente, carga diferida y llamadas desde Code Mode.
-- Historial Responses Lite con `additional_tools`, namespaces y fin de turno.
+## Fuentes
 
-La validación local automatizada y las comprobaciones reales de NVIDIA se
-resumen en [VALIDACION.json](VALIDACION.json). Una prueba de protocolo no
-demuestra por sí sola que el selector de una instalación concreta se haya
-actualizado. La instalación del complemento en la interfaz real está pendiente
-de esa comprobación y no se declara completada por publicar este repositorio.
+- [Autenticación y acceso anónimo de Kilo](https://kilo.ai/docs/gateway/authentication).
+- [Auto Free y selección de modelos](https://kilo.ai/docs/code-with-ai/agents/auto-model).
+- [Catálogo de Kilo](https://kilo.ai/docs/gateway/models-and-providers).
+- [Contrato de gateway de Codex](https://learn.chatgpt.com/docs/enterprise/gateway-compatibility).
 
-No se promete compatibilidad universal: las herramientas alojadas de OpenAI,
-su compactación remota y contexto cifrado, audio/vídeo y `previous_response_id`
-de NVIDIA no están implementados en esta versión.
-
-## Restaurar o desinstalar
-
-Pide **«Restaura el proveedor anterior»** con el complemento activo, o ejecuta
-`RESTAURAR PROVEEDOR.cmd`. Después carga la configuración restaurada y desinstala
-el complemento desde Plugins. La restauración conserva los demás ajustes;
-no restaura una copia completa antigua de `config.toml`.
-
-## Desarrollo
-
-El plugin autocontenido está en `plugins/minimax-jdc`. El mercado del repositorio
-está en `.agents/plugins/marketplace.json`. El ZIP incluye sólo el complemento.
-No requiere dependencias npm: utiliza Node.js y PowerShell/.NET de Windows.
-
-Ejecuta las pruebas con Node.js 22 o posterior:
-
-```text
-node --test tests/test_gateway.mjs tests/test_plugin.mjs
-```
-
-Las pruebas locales no necesitan credenciales. Las comprobaciones reales de
-NVIDIA son optativas y no se ejecutan en CI. Los marcadores e imágenes de las
-pruebas son fixtures de software, sin datos del usuario.
-
-## Referencias
-
-- [Formato e instalación local de plugins](https://developers.openai.com/plugins/build/plugins)
-- [Compatibilidad de gateways con Codex](https://learn.chatgpt.com/docs/enterprise/gateway-compatibility)
-- [Búsqueda y carga diferida de herramientas](https://developers.openai.com/api/docs/guides/tools-tool-search)
-- [Formato de peticiones del cliente Codex](https://github.com/openai/codex/blob/main/codex-rs/core/src/client.rs)
-- [MiniMax M3.1 Flash en NVIDIA](https://build.nvidia.com/minimaxai/minimax-m3.1-flash)
-- [DeepSeek V4.1 Flash en NVIDIA](https://build.nvidia.com/deepseek-ai/deepseek-v4.1-flash)
-- [GLM-5.3-Flash en NVIDIA](https://build.nvidia.com/z-ai/glm-5-3-flash/modelcard)
-- [Presupuesto de razonamiento DeepSeek en vLLM](https://recipes.vllm.ai/deepseek-ai/DeepSeek-V4.1-Flash)
-- [Condiciones y alcance de Free Endpoint](https://docs.api.nvidia.com/nim/docs/product)
-
-Creado con el flujo de [Plugin Creator](https://developers.openai.com/plugins/build/plugins)
-para ELUNIVERSODEJDC. Publicar este código en GitHub no lo publica en el directorio
-universal de plugins ni demuestra su instalación en una cuenta de ChatGPT.
+Integración independiente de ELUNIVERSODEJDC. No es un producto oficial de Kilo ni de OpenAI. Las versiones 0.1.x son históricas y usaban NVIDIA.

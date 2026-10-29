@@ -1,99 +1,52 @@
-MINIMAX PARA CODEX JDC - 0.1.6
+AUTO FREE PARA CODEX JDC — 0.2.0
 
-INSTALAR CUANDO QUIERAS
-1. Extrae el ZIP en una carpeta y ejecuta INSTALAR.cmd.
-2. Introduce tu clave NVIDIA en la ventana de contraseña. No la pegues en el chat.
-3. El instalador hace una prueba real de MiniMax y configura su proveedor sólo
-   si la conexión funciona. Mantiene los modelos GPT y tu modelo predeterminado.
-4. El instalador reinicia Codex. Selecciona MiniMax, DeepSeek V4.1 Flash o GLM-5.3-Flash.
-5. En Plugins, abre tu mercado personal e instala MiniMax para Codex JDC para
-   disponer de sus herramientas y del arranque al cargar el complemento.
+Integra la ruta real kilo-auto/free del servicio Kilo en el selector de Codex.
+Kilo elige el modelo gratuito disponible; no se copia ni se instala Kilo Code.
+Ya no se ofrecen MiniMax, DeepSeek y GLM mediante NVIDIA.
 
-También puedes instalar la entrada desde un mercado local preparado y pedir
-"Configura MiniMax". El complemento abre la misma ventana privada.
-Los plugins de Codex no ejecutan instaladores automáticamente al descargarse:
-la configuración se inicia al ejecutar INSTALAR.cmd o pedir Configurar MiniMax.
-El instalador reinicia Codex Desktop de Windows sólo después de comprobar
-la conexión y guardar el proveedor. No lo reinicia si cancelas o falla la prueba.
-La configuración desde la herramienta MCP mantiene el chat abierto.
-Desde 0.1.5, Windows inicia el puente en segundo plano mediante CIM, separado
-del proceso temporal del configurador o MCP. Sobrevive al cierre de su lanzador
-y conserva registros propios. No instala servicios ni tareas programadas.
-La ventana de clave se abre delante de otras ventanas y con el campo enfocado.
-La consola indica apertura, prueba de conexión y activación. Cancelar la ventana
-o alcanzar sus 10 minutos de espera se informa sin cambiar el proveedor.
-Los procesos del configurador aíslan las rutas de módulos de Windows PowerShell
-para cifrar y recuperar la clave aunque el instalador se abra desde PowerShell 7.
-No se cambian variables globales ni la configuración de Windows.
+INSTALAR
+1. Requiere Windows y Node.js 22 o posterior.
+2. Ejecuta INSTALAR.cmd. Registra el complemento en el mercado personal,
+   comprueba una respuesta real de Kilo y activa el proveedor local.
+3. Tras una instalación correcta, el instalador reinicia Codex.
+4. En Plugins aparece Auto Free para Codex JDC. Actívalo para el arranque
+   automático del puente. En el selector elige Kilo Auto Free.
+No necesitas clave API ni tarjeta para la ruta anónima gratuita.
+Los modelos GPT del catálogo de OpenAI se conservan.
 
-REQUISITOS
-Windows, Node.js 22 o posterior y la sesión habitual de Codex iniciada.
-Clave de NVIDIA para integrate.api.nvidia.com; no es una clave de MiniMax directo.
-No instala Node.js ni descarga ejecutables. No usa servicios ni tareas de Windows.
-No funciona en ChatGPT web/móvil porque necesita un proceso en el ordenador.
+ACTUALIZAR DESDE MINIMAX JDC
+La identidad técnica minimax-jdc, el puerto local y la carpeta de datos se
+mantienen para actualizar el mismo complemento. La antigua clave cifrada no
+se descifra, no se envía a Kilo y no se borra. La ventana de clave se retira.
+Los chats antiguos con modelos NVIDIA ya no tienen una ruta activa en esta
+versión: cambia su modelo a Kilo Auto Free o abre un chat nuevo.
 
-QUÉ SE INSTALA
-Código del plugin: %USERPROFILE%\.codex\plugins\minimax-jdc
-Entrada conservando otros plugins: %USERPROFILE%\.agents\plugins\marketplace.json
-Clave cifrada y registros: %LOCALAPPDATA%\ELUNIVERSODEJDC\MiniMaxCodex
-Proveedor añadido: minimax_jdc, en el config.toml del usuario de Codex.
-Puente: sólo 127.0.0.1:8769. Si ese puerto está ocupado por otro servicio,
-se informa del conflicto; no se detiene ni sustituye ese proceso.
+USO Y LÍMITES
+El catálogo de Kilo consultado el 29/10/2026 anuncia 256000 tokens de contexto,
+32768 de salida máxima, texto y herramientas. No anuncia imágenes para Auto
+Free. Se conserva el historial completo, las llamadas y los resultados de
+herramientas; la compatibilidad nativa de cada función debe comprobarse.
+Kilo elige el razonamiento del modelo; no se anuncia un control de esfuerzo
+que esta ruta no garantiza. El modelo real puede cambiar entre peticiones.
+Los modelos gratuitos, su disponibilidad y sus límites pueden variar.
+Kilo documenta 200 peticiones por hora e IP para acceso anónimo. No hay
+fallback de pago. Un 429 se informa como límite de Kilo, no como éxito.
+Los proveedores pueden registrar consultas y utilizarlas para mejorar sus
+servicios. No uses esta ruta gratuita con datos personales o confidenciales.
 
-La clave usa DPAPI de Windows, vinculada al usuario y al equipo. No se incluye
-en el plugin, en el ZIP, en herramientas de chat ni en el archivo config.toml.
-El puente recibe el historial de las peticiones al modelo seleccionado:
-MiniMax, DeepSeek y GLM van a NVIDIA; los modelos GPT mantienen su ruta OpenAI.
-No registra el contenido de conversaciones ni argumentos de herramientas.
-Una copia de recuperación local de config.toml puede contener tus otras
-credenciales; no la compartas. No se empaqueta ni sube.
-
-USO Y RESTAURACIÓN
-estado_minimax consulta estado; configurar_minimax abre la ventana de clave;
-restaurar_proveedor selecciona el proveedor anterior conservando otros ajustes.
-Antes de desinstalar el plugin, restaura el proveedor y carga esa configuración.
-También puedes ejecutar RESTAURAR PROVEEDOR.cmd.
-No se desinstalan ni eliminan otros modelos o plugins.
-Tras reiniciar Windows, el puente se inicia al cargar el MCP del complemento.
-Si el complemento no se carga aún, pide Configurar MiniMax o usa INSTALAR.cmd.
-
-COMPATIBILIDAD Y LÍMITES
-Desde 0.1.6 se añaden DeepSeek V4.1 Flash y GLM-5.3-Flash junto a MiniMax,
-con la misma clave NVIDIA y conservando los modelos GPT. No se cambia el modelo
-seleccionado de tus chats. Recarga Codex para ver las nuevas entradas del catálogo.
-Ambos modelos nuevos anuncian contexto de 1.048.576 tokens y admiten texto,
-imágenes y herramientas. GLM admite hasta ocho imágenes por petición; si se
-supera ese límite se informa del error sin eliminar imágenes del historial.
-DeepSeek ofrece low/high/xhigh/max; GLM ofrece low/high/max. Ambos usan high
-por defecto en el selector. El puente limita la salida a 32.768 tokens por
-petición, como en MiniMax. El razonamiento elegido se traduce para cada modelo.
-Desde 0.1.4, MiniMax usa la misma presentación de herramientas del cliente
-que Terra/Luna: Code Mode, búsqueda de herramientas ejecutada por Codex y
-declaraciones incrementales Responses Lite. El puente conserva llamadas,
-resultados, namespaces y la señal de fin de turno al traducir a la API NVIDIA.
-No recorta el historial ni reduce el razonamiento para obtener esta mejora.
-Tampoco cambia el timeout. La espera del servicio NVIDIA sigue siendo externa.
-La mejora de latencia y tokens en la app requiere una prueba con el catálogo
-recargado; las pruebas de protocolo no sustituyen esa medición.
-Texto, imágenes directas y devueltas por herramientas, function/custom/MCP,
-streaming Responses, historial y herramientas cambiadas entre turnos.
-El error de historial exec_command se corrige conservando llamadas antiguas
-sin convertirlas en herramientas nuevas disponibles.
-Se verifica el resumen sin herramientas usado por la compactación local.
-No se implementa /responses/compact remoto de NVIDIA ni se descifra contexto
-opaco de OpenAI. Tampoco se implementan audio, vídeo, búsquedas alojadas de
-OpenAI ni previous_response_id para NVIDIA. No se promete compatibilidad 100%.
-No hay cambio automático a un modelo de pago. NVIDIA determina gratuidad,
-límites de uso y disponibilidad de su Free Endpoint para pruebas/desarrollo.
-
-VALIDACIÓN
-La evidencia de esta versión se entrega en VALIDACION.json junto al ZIP.
-Las pruebas de protocolo usan datos ficticios de software, nunca el expediente
-privado del usuario. No implican haber ejecutado el caso DANA ni sus documentos.
-La instalación en el selector real queda por verificar cuando lo instales.
+GESTIÓN
+MCP: estado_auto_free, configurar_auto_free y restaurar_proveedor.
+Las llamadas históricas estado_minimax/configurar_minimax siguen siendo
+alias de gestión; ya no configuran NVIDIA ni abren su ventana de clave.
+RESTAURAR PROVEEDOR.cmd vuelve al proveedor anterior sin restaurar una copia
+antigua de toda la configuración. Restaura antes de desinstalar.
+La configuración directa y MCP conservan Codex abierto. El instalador externo
+reinicia sólo después de verificar conexión y configuración.
 
 FUENTES
-https://developers.openai.com/plugins/build/plugins
-https://learn.chatgpt.com/docs/enterprise/gateway-compatibility
-https://build.nvidia.com/minimaxai/minimax-m3.1-flash
-https://docs.api.nvidia.com/nim/docs/product
+https://kilo.ai/docs/gateway/authentication
+https://kilo.ai/docs/code-with-ai/agents/auto-model
+https://kilo.ai/docs/gateway/models-and-providers
+
+Complemento independiente de ELUNIVERSODEJDC. No es un producto oficial de
+Kilo ni de OpenAI. No garantiza disponibilidad o velocidad del servicio.

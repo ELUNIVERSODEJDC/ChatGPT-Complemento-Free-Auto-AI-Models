@@ -62,8 +62,8 @@ export async function restartCodex({ dryRun = false } = {}) {
 export async function restartAfterSetup(result, { getStatus = status, restart = restartCodex, log = () => {} } = {}) {
   if (result?.liveProbe !== true) throw new Error('No se reinicia Codex sin una prueba de conexión completada.');
   const current = await getStatus();
-  if (!current.providerSelected || !current.credentialStored || current.gateway?.status !== 'running')
-    throw new Error('MiniMax no está listo; no se reinicia Codex.');
-  log('Configuración completada. Reiniciando Codex para cargar MiniMax...');
+  if (!current.providerSelected || !current.authenticationReady || current.gateway?.status !== 'running')
+    throw new Error('Kilo Auto Free no está listo; no se reinicia Codex.');
+  log('Configuración completada. Reiniciando Codex para cargar Kilo Auto Free...');
   return restart();
 }

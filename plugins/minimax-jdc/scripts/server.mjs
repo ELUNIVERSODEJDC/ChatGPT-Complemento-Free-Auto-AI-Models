@@ -3,13 +3,13 @@ import { appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createGateway, MODEL_SETTINGS, PLUGIN_MODELS } from '../runtime/gateway.mjs';
-import { configure, restore, status, launchBridge, storedKey, PORT, DATA } from './management.mjs';
+import { configure, restore, status, launchBridge, PORT, DATA } from './management.mjs';
 for (const [model, settings] of MODEL_SETTINGS) settings.listed = PLUGIN_MODELS.includes(model);
 
 const tools = [
-  { name: 'estado_minimax', description: 'Estado del puente, MiniMax, DeepSeek y GLM y de la configuración. Nunca devuelve la clave.',
+  { name: 'estado_auto_free', description: 'Estado de Kilo Auto Free, del puente local y de la configuración. No requiere clave API.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true } },
-  { name: 'configurar_minimax', description: 'Abre una ventana local privada para introducir la clave NVIDIA, comprueba MiniMax y activa su proveedor conservando GPT. Sólo por petición expresa del usuario.',
+  { name: 'configurar_auto_free', description: 'Comprueba Kilo Auto Free y activa su entrada en el selector conservando GPT. Sin clave API. Sólo por petición expresa del usuario.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true } },
   { name: 'restaurar_proveedor', description: 'Vuelve al proveedor anterior conservando el resto de config.toml. Sólo cuando lo pide el usuario.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false } },
@@ -18,7 +18,7 @@ if (process.argv.includes('--gateway-only')) {
   mkdirSync(DATA, { recursive: true });
   const logError = error => appendFileSync(path.join(DATA, 'gateway-error.log'),
     new Date().toISOString() + ' MiniMax gateway: ' + String(error.code || error.name || 'runtime_error') + '\n');
-  const server = createGateway({ keyProvider: storedKey, port: PORT, allowedModels: PLUGIN_MODELS });
+  const server = createGateway({ keyProvider: async () => undefined, port: PORT, allowedModels: PLUGIN_MODELS });
   server.requestTimeout = 360000;
   server.headersTimeout = 30000;
   server.on('error', error => { logError(error); process.exitCode = 1; });
@@ -34,8 +34,8 @@ if (process.argv.includes('--gateway-only')) {
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.close(() => process.exit(0)));
 } else {
   // Startup only restores the runtime, never requests a secret or edits config.
-  storedKey().then(key => key ? launchBridge() : undefined)
-    .catch(error => console.error('MiniMax: ' + String(error.message).replace(/nvapi-[\w-]+/g, '[REDACTED]')));
+  status().then(current => current.providerSelected ? launchBridge() : undefined)
+    .catch(error => console.error('Auto Free: ' + String(error.message).replace(/nvapi-[\w-]+/g, '[REDACTED]')));
   const lines = createInterface({ input: process.stdin, crlfDelay: Infinity });
   const send = value => process.stdout.write(JSON.stringify(value) + '\n');
   let mutation = false;
@@ -47,18 +47,19 @@ if (process.argv.includes('--gateway-only')) {
     if (request.method === 'initialize') {
       const versions = ['2024-11-05', '2025-03-26', '2025-06-18'];
       reply({ protocolVersion: versions.includes(request.params?.protocolVersion) ? request.params.protocolVersion : '2025-06-18',
-        capabilities: { tools: {} }, serverInfo: { name: 'minimax-jdc', version: '0.1.0' } });
+        capabilities: { tools: {} }, serverInfo: { name: 'minimax-jdc', version: '0.2.0' } });
     } else if (request.method === 'ping') reply({});
     else if (request.method === 'tools/list') reply({ tools });
     else if (request.method === 'tools/call') {
-      const name = request.params?.name;
-      const mutates = name === 'configurar_minimax' || name === 'restaurar_proveedor';
+      const requested = request.params?.name;
+      const name = ({ estado_minimax: 'estado_auto_free', configurar_minimax: 'configurar_auto_free' })[requested] || requested;
+      const mutates = name === 'configurar_auto_free' || name === 'restaurar_proveedor';
       if (mutates && mutation) { reply({ isError: true, content: [{ type: 'text', text: 'Hay una configuración en curso. Espera a que termine.' }] }); return; }
       try {
         if (!tools.some(t => t.name === name)) throw new Error('Herramienta desconocida.');
         if (Object.keys(request.params?.arguments || {}).length) throw new Error('Esta herramienta no acepta argumentos ni claves.');
         if (mutates) mutation = true;
-        const value = name === 'estado_minimax' ? await status() : name === 'configurar_minimax' ? await configure() : restore();
+        const value = name === 'estado_auto_free' ? await status() : name === 'configurar_auto_free' ? await configure() : restore();
         reply({ content: [{ type: 'text', text: JSON.stringify(value) }] });
       } catch (error) {
         reply({ isError: true, content: [{ type: 'text', text: String(error.message).replace(/nvapi-[\w-]+/g, '[REDACTED]') }] });

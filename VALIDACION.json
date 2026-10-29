@@ -1,346 +1,249 @@
 {
-  "version": "0.1.6",
-  "scope": "Local automated protocol and configuration tests; real NVIDIA inference with software fixtures.",
-  "gatewaySHA256": "2f886b30a22036198648467c1a73474da6a2591faed613d9eae4a66dcba00823",
+  "version": "0.2.0",
+  "scope": "Kilo Auto Free gateway and installer migration. Local protocol tests and actual anonymous Kilo calls.",
+  "gatewaySHA256": "258a0da183ad471cd376599df2368f1cc53204c9b652ad09928914ba1dcd2f66",
   "localTests": {
-    "adapterPassed": 45,
+    "adapterPassed": 48,
     "pluginPassed": 11,
-    "optionalLiveTestsSkippedInSuite": 4
+    "optionalHistoricalNvidiaTestsSkipped": 4
+  },
+  "route": {
+    "model": "kilo-auto/free",
+    "anonymous": true,
+    "paidFallback": false,
+    "nvidiaCredentialRead": false,
+    "openaiCredentialSentToKilo": false,
+    "contextWindow": 256000,
+    "maxOutputTokens": 32768,
+    "inputModalities": [
+      "text"
+    ],
+    "reasoningControlledByKilo": true
+  },
+  "realKiloInference": {
+    "at": "2026-10-29T18:41:58.537Z",
+    "route": "kilo-auto/free",
+    "anonymous": true,
+    "nativeDesktopTest": false,
+    "checks": [
+      {
+        "name": "greeting",
+        "durationMs": 1168,
+        "firstEventMs": 807,
+        "firstTextMs": 1063,
+        "servedModels": [
+          "reflection/beam-free"
+        ],
+        "usage": {
+          "input_tokens": 53,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 30,
+          "output_tokens_details": {
+            "reasoning_tokens": 19
+          },
+          "total_tokens": 83
+        }
+      },
+      {
+        "name": "namespaced custom tool",
+        "durationMs": 1500,
+        "firstEventMs": 789,
+        "servedModels": [
+          "reflection/beam-free"
+        ],
+        "usage": {
+          "input_tokens": 125,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 77,
+          "output_tokens_details": {
+            "reasoning_tokens": 56
+          },
+          "total_tokens": 202
+        }
+      },
+      {
+        "name": "tool result continuation",
+        "durationMs": 1468,
+        "firstEventMs": 644,
+        "firstTextMs": 962,
+        "servedModels": [
+          "reflection/beam-free"
+        ],
+        "usage": {
+          "input_tokens": 118,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 60,
+          "output_tokens_details": {
+            "reasoning_tokens": 49
+          },
+          "total_tokens": 178
+        }
+      },
+      {
+        "name": "local compaction replay",
+        "durationMs": 1108,
+        "firstEventMs": 731,
+        "firstTextMs": 985,
+        "servedModels": [
+          "reflection/beam-free"
+        ],
+        "usage": {
+          "input_tokens": 186,
+          "input_tokens_details": {
+            "cached_tokens": 64
+          },
+          "output_tokens": 43,
+          "output_tokens_details": {
+            "reasoning_tokens": 25
+          },
+          "total_tokens": 229
+        }
+      }
+    ],
+    "passed": true
   },
   "backgroundLifetime": {
     "launcher": "Windows CIM Win32_Process.Create",
     "hidden": true,
     "survivesLauncherTerminationTested": true,
-    "separateParentVerified": true,
-    "testProcessCleanupVerified": true,
     "installsService": false,
     "installsScheduledTask": false
   },
-  "installedHttpConnection": {
-    "passed": true,
-    "nativeDesktopTest": false,
-    "installedHttpEndpoint": true,
-    "reasoning": "high",
-    "timeoutChanged": false,
-    "httpStatus": 200,
-    "headersMs": 83168,
-    "firstEventMs": 83168,
-    "responseCompleted": true,
-    "exactMarker": true,
-    "usage": {
-      "input_tokens": 441,
-      "input_tokens_details": {
-        "cached_tokens": 128
-      },
-      "output_tokens": 12,
-      "output_tokens_details": {
-        "reasoning_tokens": 7
-      },
-      "total_tokens": 453
-    },
-    "durationMs": 84651
-  },
-  "codeMode": {
-    "bridgeRevision": "codex-multi-model-lite-v4",
-    "clientPresentationMatchesObservedTerraAndLuna": true,
-    "toolMode": "code_mode_only",
-    "clientToolSearch": true,
-    "responsesLite": true,
-    "deferredTools": true,
-    "namespacedHistory": true,
-    "endTurnPreserved": true,
-    "historyTruncated": false,
-    "reasoningReduced": false,
-    "providerTimeoutChanged": false,
-    "nativeDesktopPerformanceRetested": false,
-    "realNvidiaFixtureChecks": [
-      {
-        "name": "1/4 lite greeting",
-        "durationMs": 69249,
-        "headersMs": 66426,
-        "payloadBytes": 1032,
-        "firstTextMs": 68963,
-        "usage": {
-          "input_tokens": 530,
-          "input_tokens_details": {
-            "cached_tokens": 128
-          },
-          "output_tokens": 38,
-          "output_tokens_details": {
-            "reasoning_tokens": 25
-          },
-          "total_tokens": 568
-        },
-        "types": [
-          "message"
-        ]
-      },
-      {
-        "name": "2/4 native client discovery",
-        "durationMs": 73374,
-        "headersMs": 71589,
-        "payloadBytes": 1213,
-        "usage": {
-          "input_tokens": 580,
-          "input_tokens_details": {
-            "cached_tokens": 128
-          },
-          "output_tokens": 18,
-          "output_tokens_details": {
-            "reasoning_tokens": 0
-          },
-          "total_tokens": 598
-        },
-        "types": [
-          "tool_search_call"
-        ]
-      },
-      {
-        "name": "3/4 code-mode execution",
-        "durationMs": 71738,
-        "headersMs": 68493,
-        "payloadBytes": 1850,
-        "usage": {
-          "input_tokens": 709,
-          "input_tokens_details": {
-            "cached_tokens": 128
-          },
-          "output_tokens": 43,
-          "output_tokens_details": {
-            "reasoning_tokens": 0
-          },
-          "total_tokens": 752
-        },
-        "types": [
-          "custom_tool_call"
-        ]
-      },
-      {
-        "name": "4/4 final replay",
-        "durationMs": 66082,
-        "headersMs": 61233,
-        "payloadBytes": 2027,
-        "firstTextMs": 65364,
-        "usage": {
-          "input_tokens": 383,
-          "input_tokens_details": {
-            "cached_tokens": 128
-          },
-          "output_tokens": 108,
-          "output_tokens_details": {
-            "reasoning_tokens": 78
-          },
-          "total_tokens": 491
-        },
-        "types": [
-          "message"
-        ]
-      }
-    ],
-    "reasoning": "high",
-    "maxOutputTokens": 32768,
-    "priorAttempt": {
-      "durationMs": 300015,
-      "error": {
-        "code": 23,
-        "message": "The operation was aborted due to timeout"
-      },
-      "note": "The fourth request exceeded the remaining total five-minute harness budget. Only final replay was repeated with reconstructed software fixture history; no provider timeout was changed."
-    },
-    "note": "Fixture protocol checks are not a native Desktop latency comparison. The greeting used 530 input tokens in a small fixture; it is not comparable to the earlier 216956-token native chat."
+  "configuration": {
+    "knownLegacyTableMigrates": true,
+    "unrelatedSettingsPreserved": true,
+    "restorationRecordPreservedOnUpgrade": true,
+    "credentialDialogRemoved": true
   },
   "installerRestart": {
     "successGateTested": true,
-    "failureAndCancellationGateTested": true,
-    "desktopExecutableDiscoveryDryRunPassed": true,
+    "failureGateTested": true,
     "realDesktopRestartTested": false
   },
-  "credentialEncryption": {
-    "saveHandlerRoundtripPassed": true,
-    "incompatibleInheritedModulesRegressionPassed": true,
-    "realCredentialUsedByTests": false
-  },
-  "nvidia": {
-    "superVlHistoryAndImages": {
-      "passed": true,
-      "durationMs": 21255
-    },
-    "miniMaxHistoricalReplay": {
-      "checks": [
-        {
-          "name": "local-compaction-no-tools",
-          "ok": true,
-          "historicalResultPreserved": true
-        },
-        {
-          "name": "changed-current-tools",
-          "ok": true,
-          "historicalResultPreserved": true
-        }
-      ]
-    },
-    "miniMaxImageReplay": {
-      "passed": true,
-      "durationMs": 32309,
-      "observedColor": "red",
-      "textMarkerPreserved": true,
-      "note": "Initial image-text check failed; associated text attachment was corrected and the affected check passed."
-    }
-  },
-  "credentialDialog": {
-    "visibilityAndInputFocusProbe": true,
-    "topMost": true,
-    "probeExitCode": 2,
-    "credentialSubmittedByProbe": false,
-    "note": "Form opens with input focus and topmost; automatically closed without entering a key. User interaction remains to be confirmed."
-  },
   "notVerified": [
-    "Native plugin MCP installation",
-    "Automatic desktop close and reopen in a real installer run",
-    "Native Desktop token and latency comparison after catalog reload",
-    "Real DeepSeek V4.1 Flash and GLM-5.3-Flash tool/image inference: provider did not complete the schema probes"
+    "Complete conversation in the native Codex desktop after selecting Kilo Auto Free",
+    "Real automatic desktop restart in this installer version"
   ],
-  "notImplemented": [
-    "Automatic model routing",
-    "NVIDIA remote encrypted compaction",
-    "OpenAI hosted tools for NVIDIA",
-    "Audio/video",
-    "NVIDIA previous_response_id"
+  "notSupported": [
+    "Images in Auto Free according to the current catalog",
+    "OpenAI hosted tools on the Kilo route",
+    "Adjustable reasoning effort on the rotating Auto Free route",
+    "previous_response_id on Kilo"
   ],
-  "additionalModels": {
-    "at": "2026-10-29T18:03:19.530Z",
-    "fixtureToolsOnly": true,
+  "independentIntegration": true,
+  "sources": [
+    "https://kilo.ai/docs/gateway/authentication",
+    "https://kilo.ai/docs/code-with-ai/agents/auto-model",
+    "https://kilo.ai/docs/gateway/models-and-providers"
+  ],
+  "installedVerification": {
+    "at": "2026-10-29T18:46:07.816Z",
+    "installedHttpEndpoint": true,
     "nativeDesktopTest": false,
-    "models": {
-      "deepseek-ai/deepseek-v4.1-flash": {
-        "checks": [],
-        "reasoning": "low",
-        "maxOutputTokens": 32768,
-        "stage": "failed",
-        "passed": false,
-        "error": {
-          "code": 23,
-          "message": "The operation was aborted due to timeout"
-        }
-      },
-      "z-ai/glm-5.3-flash": {
-        "checks": [],
-        "reasoning": "low",
-        "maxOutputTokens": 32768,
-        "stage": "failed",
-        "passed": false,
-        "error": {
-          "code": 23,
-          "message": "The operation was aborted due to timeout"
-        }
-      }
-    },
-    "priorAttempts": [
+    "checks": [
       {
-        "at": "2026-10-29T17:58:10.802Z",
-        "durationMs": 300014,
-        "models": {
-          "deepseek-ai/deepseek-v4.1-flash": {
-            "checks": [],
-            "reasoning": "low",
-            "maxOutputTokens": 32768,
-            "stage": "failed",
-            "passed": false,
-            "error": {
-              "code": 23,
-              "message": "The operation was aborted due to timeout"
-            }
-          },
-          "z-ai/glm-5.3-flash": {
-            "checks": [],
-            "reasoning": "low",
-            "maxOutputTokens": 32768,
-            "stage": "failed",
-            "passed": false,
-            "error": {
-              "code": 23,
-              "message": "The operation was aborted due to timeout"
-            }
-          }
-        }
-      }
-    ],
-    "durationMs": 300023,
-    "validationScope": "Catalog and local protocol verified; real inference was attempted separately and must not be inferred from registration."
-  },
-  "additionalModelAvailability": {
-    "at": "2026-10-29T18:05:39.654Z",
-    "nativeDesktopTest": false,
-    "models": {
-      "deepseek-ai/deepseek-v4.1-flash": {
-        "passed": false,
-        "error": {
-          "code": 23,
-          "message": "The operation was aborted due to timeout"
-        },
-        "durationMs": 300011
-      },
-      "z-ai/glm-5.3-flash": {
-        "passed": true,
+        "httpStatus": 200,
+        "headersMs": 946,
+        "durationMs": 2461,
+        "responseCompleted": true,
         "usage": {
-          "input_tokens": 17,
+          "input_tokens": 121,
           "input_tokens_details": {
             "cached_tokens": 0
           },
-          "output_tokens": 3,
+          "output_tokens": 108,
           "output_tokens_details": {
-            "reasoning_tokens": 0
+            "reasoning_tokens": 79
           },
-          "total_tokens": 20
-        },
-        "durationMs": 299801
-      }
-    },
-    "durationMs": 300011
-  },
-  "installedModelCatalog": {
-    "at": "2026-10-29T18:04:36.172Z",
-    "passed": true,
-    "installedGateway": true,
-    "nativePickerReloadConfirmed": false,
-    "models": [
-      {
-        "slug": "minimaxai/minimax-m3.1-flash",
-        "name": "MiniMax-M3.1-Flash",
-        "context": 262144,
-        "toolMode": "code_mode_only",
-        "reasoning": [
-          "low",
-          "medium",
-          "high",
-          "xhigh",
-          "max"
-        ]
+          "total_tokens": 229
+        }
       },
       {
-        "slug": "deepseek-ai/deepseek-v4.1-flash",
-        "name": "DeepSeek V4.1 Flash",
-        "context": 1048576,
-        "toolMode": "code_mode_only",
-        "reasoning": [
-          "low",
-          "high",
-          "xhigh",
-          "max"
-        ]
-      },
-      {
-        "slug": "z-ai/glm-5.3-flash",
-        "name": "GLM-5.3-Flash",
-        "context": 1048576,
-        "toolMode": "code_mode_only",
-        "reasoning": [
-          "low",
-          "high",
-          "max"
-        ]
+        "httpStatus": 200,
+        "headersMs": 944,
+        "durationMs": 1156,
+        "responseCompleted": true,
+        "usage": {
+          "input_tokens": 124,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 37,
+          "output_tokens_details": {
+            "reasoning_tokens": 30
+          },
+          "total_tokens": 161
+        }
       }
     ],
-    "gptCount": 9
+    "health": {
+      "service": "nemotron-codex",
+      "pid": 48936,
+      "model": "kilo-auto/free",
+      "bridgeRevision": "kilo-auto-free-v1",
+      "models": [
+        "kilo-auto/free"
+      ],
+      "provider": "kilo",
+      "authenticationRequired": false,
+      "keyAvailable": false,
+      "status": "running",
+      "bind": "127.0.0.1",
+      "port": 8769
+    },
+    "models": [
+      {
+        "slug": "gpt-6.1-sol",
+        "displayName": "GPT-6.1-Sol"
+      },
+      {
+        "slug": "gpt-6-astra",
+        "displayName": "GPT-6-Astra"
+      },
+      {
+        "slug": "gpt-6.1-terra",
+        "displayName": "GPT-6.1 Terra"
+      },
+      {
+        "slug": "gpt-6-sol",
+        "displayName": "GPT-6-Sol"
+      },
+      {
+        "slug": "gpt-reserve",
+        "displayName": "GPT-Reserve"
+      },
+      {
+        "slug": "gpt-6-luna",
+        "displayName": "GPT-6-Luna"
+      },
+      {
+        "slug": "gpt-5.6-sol",
+        "displayName": "GPT-5.6-Sol"
+      },
+      {
+        "slug": "gpt-5.6-terra",
+        "displayName": "GPT-5.6-Terra"
+      },
+      {
+        "slug": "gpt-5.6-luna",
+        "displayName": "GPT-5.6-Luna"
+      },
+      {
+        "slug": "codex-auto-review",
+        "displayName": "Codex Auto Review"
+      },
+      {
+        "slug": "kilo-auto/free",
+        "displayName": "Kilo Auto Free"
+      }
+    ],
+    "gptCount": 9,
+    "passed": true
   }
 }

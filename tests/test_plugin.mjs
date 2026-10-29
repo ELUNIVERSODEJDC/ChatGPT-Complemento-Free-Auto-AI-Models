@@ -73,7 +73,7 @@ test('background launcher rejects invalid executable paths before starting Windo
 test('installer restart happens once after a successful probe and a ready provider', async () => {
   const calls = [];
   const result = await restartAfterSetup({ liveProbe: true }, {
-    getStatus: async () => { calls.push('status'); return { providerSelected: true, credentialStored: true, gateway: { status: 'running' } }; },
+    getStatus: async () => { calls.push('status'); return { providerSelected: true, authenticationReady: true, gateway: { status: 'running' } }; },
     restart: async () => { calls.push('restart'); return { restarted: true }; }
   });
   assert.deepEqual(calls, ['status', 'restart']);
@@ -86,9 +86,9 @@ test('failed, cancelled or incomplete setup never restarts Codex', async () => {
     await assert.rejects(restartAfterSetup(probe, { restart: async () => { restarted++; } }), /sin una prueba/);
   }
   for (const state of [
-    { providerSelected: false, credentialStored: true, gateway: { status: 'running' } },
-    { providerSelected: true, credentialStored: false, gateway: { status: 'running' } },
-    { providerSelected: true, credentialStored: true, gateway: null }
+    { providerSelected: false, authenticationReady: true, gateway: { status: 'running' } },
+    { providerSelected: true, authenticationReady: false, gateway: { status: 'running' } },
+    { providerSelected: true, authenticationReady: true, gateway: null }
   ]) {
     await assert.rejects(restartAfterSetup({ liveProbe: true }, {
       getStatus: async () => state, restart: async () => { restarted++; }
@@ -140,6 +140,8 @@ test('provider install is idempotent and preserves GPT defaults and unrelated se
   assert.equal(configuredText(after), after);
   assert.ok(after.includes(before));
   assert.equal((after.match(/\[model_providers\.minimax_jdc\]/g) || []).length, 1);
+  const legacy=after.replace('Kilo Auto Free JDC + OpenAI','MiniMax NVIDIA JDC + OpenAI');
+  assert.equal(configuredText(legacy),after);
   assert.ok(setProvider(after, null).startsWith(before));
   assert.throws(() => configuredText('model_catalog_json = "custom.json"\n'), /catálogo local/);
   assert.throws(() => configuredText('[model_providers.minimax_jdc]\nbase_url = "other"\n'), /distinta/);
@@ -221,12 +223,14 @@ test('MCP initializes, discovers tools and reports harmless status without confi
     const init = await call(1, 'initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'protocol-test', version: '1' } });
     assert.equal(init.result.protocolVersion, '2025-03-26');
     const list = await call(2, 'tools/list', {});
-    assert.deepEqual(list.result.tools.map(t => t.name), ['estado_minimax', 'configurar_minimax', 'restaurar_proveedor']);
-    const result = await call(3, 'tools/call', { name: 'estado_minimax', arguments: {} });
+    assert.deepEqual(list.result.tools.map(t => t.name), ['estado_auto_free', 'configurar_auto_free', 'restaurar_proveedor']);
+    const result = await call(3, 'tools/call', { name: 'estado_auto_free', arguments: {} });
     const state = JSON.parse(result.result.content[0].text);
     assert.equal(state.credentialStored, false);
     assert.equal(state.providerSelected, false);
-    const rejected = await call(4, 'tools/call', { name: 'configurar_minimax', arguments: { apiKey: 'test-only' } });
+    assert.equal(state.authenticationRequired, false);
+    assert.equal(state.authenticationReady, true);
+    const rejected = await call(4, 'tools/call', { name: 'configurar_auto_free', arguments: { apiKey: 'test-only' } });
     assert.equal(rejected.result.isError, true);
     assert.match(rejected.result.content[0].text, /no acepta argumentos/);
   } finally { child.kill(); await once(child, 'exit'); assert.ok(child.exitCode !== null || child.signalCode); }
