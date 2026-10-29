@@ -9,7 +9,7 @@ de forma fija; el nombre del repositorio reserva el proyecto para ampliaciones.
 
 ## Instalar o recuperar después de reinstalar Codex
 
-1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.0.zip) y extráelo.
+1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.1.zip) y extráelo.
 2. Instala Node.js 22 o posterior si tu equipo no lo tiene.
 3. Ejecuta `INSTALAR.cmd` e introduce tu **clave de NVIDIA** en la ventana privada.
 4. El instalador prueba la API y sólo activa el proveedor si MiniMax responde.
@@ -24,6 +24,10 @@ La configuración no se ejecuta automáticamente al descargar el plugin.
 El instalador mantiene tu modelo GPT predeterminado y los ajustes ajenos al
 proveedor. No cierra Codex, no instala servicios y no crea tareas de Windows.
 La lista del selector debe recargarse después de cambiar de proveedor.
+
+La versión **0.1.1** abre el formulario de clave sobre las otras ventanas,
+enfoca su campo y muestra el progreso en consola. Si lo cancelas, transcurren
+10 minutos o PowerShell falla, comunica la causa y conserva el proveedor anterior.
 
 ## Clave y almacenamiento
 

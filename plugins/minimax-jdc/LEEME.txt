@@ -1,4 +1,4 @@
-MINIMAX PARA CODEX JDC - 0.1.0
+MINIMAX PARA CODEX JDC - 0.1.1
 
 INSTALAR CUANDO QUIERAS
 1. Extrae el ZIP en una carpeta y ejecuta INSTALAR.cmd.
@@ -14,6 +14,9 @@ También puedes instalar la entrada desde un mercado local preparado y pedir
 Los plugins de Codex no ejecutan instaladores automáticamente al descargarse:
 la configuración se inicia al ejecutar INSTALAR.cmd o pedir Configurar MiniMax.
 El instalador no cierra ni reinicia Codex por su cuenta.
+La ventana de clave se abre delante de otras ventanas y con el campo enfocado.
+La consola indica apertura, prueba de conexión y activación. Cancelar la ventana
+o alcanzar sus 10 minutos de espera se informa sin cambiar el proveedor.
 
 REQUISITOS
 Windows, Node.js 22 o posterior y la sesión habitual de Codex iniciada.

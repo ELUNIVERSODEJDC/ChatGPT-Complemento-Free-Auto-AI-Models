@@ -1,6 +1,6 @@
 {
   "name": "minimax-jdc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MiniMax M3.1 Flash con tu clave NVIDIA y puente local para Codex.",
   "author": {"name": "ELUNIVERSODEJDC"},
   "skills": "./skills",

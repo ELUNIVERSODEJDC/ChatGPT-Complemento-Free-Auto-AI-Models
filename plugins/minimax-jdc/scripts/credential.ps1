@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+[System.Windows.Forms.Application]::EnableVisualStyles()
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'MiniMax para Codex - Clave NVIDIA'
 $form.ClientSize = New-Object System.Drawing.Size(510, 175)
@@ -8,6 +9,8 @@ $form.StartPosition = 'CenterScreen'
 $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
+$form.ShowInTaskbar = $true
+$form.TopMost = $true
 $label = New-Object System.Windows.Forms.Label
 $label.Text = 'Introduce tu clave de NVIDIA (nvapi-...). Se guarda cifrada para este usuario.'
 $label.SetBounds(15, 15, 480, 35)
@@ -38,6 +41,13 @@ $cancelButton.SetBounds(365, 110, 130, 32)
 $form.Controls.AddRange(@($label, $inputBox, $saveButton, $cancelButton))
 $form.AcceptButton = $saveButton
 $form.CancelButton = $cancelButton
+$form.Add_Shown({
+  $form.WindowState = [System.Windows.Forms.FormWindowState]::Normal
+  $form.BringToFront()
+  $form.Activate()
+  $inputBox.Select()
+  $inputBox.Focus() | Out-Null
+})
 $answer = $form.ShowDialog()
 $form.Dispose()
 if ($answer -ne [System.Windows.Forms.DialogResult]::OK) { exit 2 }

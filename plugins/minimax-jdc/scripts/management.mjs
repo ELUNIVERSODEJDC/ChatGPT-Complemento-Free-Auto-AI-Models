@@ -88,14 +88,21 @@ export async function status() {
     gateway: await health(), dataDirectory: DATA };
 }
 
-export async function configure() {
+export async function configure({ onProgress = () => {} } = {}) {
   if (process.platform !== 'win32' || Number(process.versions.node.split('.')[0]) < 22) throw new Error('Se requiere Windows con Node.js 22 o posterior.');
   mkdirSync(DATA, { recursive: true });
   const credentialScript = readFileSync(path.join(ROOT, 'scripts', 'credential.ps1'), 'utf8');
+  onProgress('Abriendo la ventana «MiniMax para Codex - Clave NVIDIA». Introduce la clave en esa ventana.');
   try {
     await run(PS, ['-NoLogo', '-NoProfile', '-STA', '-Command', credentialScript],
       { windowsHide: true, timeout: 600000, env: { ...process.env, JDC_MINIMAX_DATA: DATA } });
-  } catch { throw new Error('La ventana de clave se canceló, agotó su espera o no pudo abrirse. No se ha cambiado el proveedor.'); }
+  } catch (error) {
+    if (error.code === 2) throw new Error('Se canceló la ventana de clave. No se ha cambiado el proveedor.');
+    if (error.killed) throw new Error('Se agotó la espera de la ventana de clave (10 minutos). No se ha cambiado el proveedor.');
+    const detail = String(error.stderr || error.code || 'error desconocido').replace(/nvapi-[\w-]+/g, '[REDACTED]').trim().slice(0, 1200);
+    throw new Error('No se pudo abrir o completar la ventana de clave: ' + detail + '. No se ha cambiado el proveedor.');
+  }
+  onProgress('Clave guardada cifrada. Comprobando la conexión con NVIDIA...');
   const key = await storedKey();
   if (!key) throw new Error('No se pudo recuperar la clave guardada.');
   const result = await generate({ model: MINIMAX_MODEL, input: 'Reply with exactly OK.', max_output_tokens: 2048,
@@ -103,6 +110,7 @@ export async function configure() {
   if (result.status !== 'completed' || !result.output.some(i => i.type === 'message' && i.content.some(p => p.text?.trim())))
     throw new Error('NVIDIA no completó la prueba. El proveedor no se ha cambiado.');
   await launchBridge();
+  onProgress('Conexión comprobada. Activando el proveedor del complemento...');
   const original = existsSync(CONFIG) ? readFileSync(CONFIG, 'utf8') : '';
   const next = configuredText(original);
   const previous = selected(original);

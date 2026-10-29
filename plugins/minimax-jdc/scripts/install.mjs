@@ -34,7 +34,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const pending = marketFile + '.minimax-jdc-pending';
     writeFileSync(pending, JSON.stringify(market, null, 2), { flag: 'wx' });
     renameSync(pending, marketFile);
-    console.log('Complemento registrado. Después aparecerá en Plugins como MiniMax para Codex JDC.');
+    console.log('Complemento registrado como MiniMax para Codex JDC. Falta configurar la clave; se abrirá su ventana ahora.');
     const child = spawn(process.execPath, [path.join(destination, 'scripts', 'configure.mjs')], { stdio: 'inherit', windowsHide: true });
     child.on('exit', code => { process.exitCode = code || 0; });
     child.on('error', () => { console.error('No se pudo abrir el configurador.'); process.exitCode = 1; });
