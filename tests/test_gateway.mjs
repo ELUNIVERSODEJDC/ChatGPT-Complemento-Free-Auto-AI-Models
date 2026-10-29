@@ -14,6 +14,98 @@ function upstream(chunks) {
 }
 function textChunk(text, finish = null) { return { choices: [{ index: 0, delta: { content: text }, finish_reason: finish }] }; }
 
+const searchTool = { type: 'tool_search', execution: 'client', description: 'Search the actual Codex deferred tool inventory.',
+  parameters: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' } }, required: ['query'], additionalProperties: false } };
+const execTool = { type: 'custom', name: 'exec', description: 'Run JavaScript with client-provided tools.' };
+const litePrefix = () => ({ type: 'additional_tools', role: 'developer', tools: [
+  { type: 'namespace', name: 'functions', tools: [execTool] }, searchTool ] });
+const searchCall = () => ({ type: 'tool_search_call', execution: 'client', call_id: 'discovery_1', status: 'completed', arguments: { query: 'echo marker' } });
+const searchOutput = () => ({ type: 'tool_search_output', execution: 'client', call_id: 'discovery_1', status: 'completed',
+  tools: [{ type: 'namespace', name: 'mcp_fixture', tools: [{ ...tool, defer_loading: true }] }] });
+
+test('MiniMax uses Terra and Luna client tool presentation without claiming OpenAI hosted search', () => {
+  const metadata = MODEL_SETTINGS.get(MINIMAX_MODEL).catalog;
+  assert.equal(metadata.tool_mode, 'code_mode_only');
+  assert.equal(metadata.supports_search_tool, true);
+  assert.equal(metadata.use_responses_lite, true);
+  assert.equal(metadata.node_repl_disabled, false);
+  assert.equal(metadata.include_apps_usage_instructions, false);
+  assert.equal(metadata.include_skills_usage_instructions, false);
+  assert.equal(metadata.include_plugin_usage_instructions, false);
+  assert.equal(metadata.default_reasoning_level, 'medium');
+  assert.deepEqual(metadata.supported_reasoning_levels.map(x=>x.effort), ['low','medium','high','xhigh','max']);
+});
+
+test('RLite declarations and namespaced code-mode replay preserve exact JavaScript', () => {
+  const code = 'const r = await tools.echo_marker({marker:"x"}); text(r);';
+  const request = { model: MINIMAX_MODEL, reasoning: { effort: 'high' }, parallel_tool_calls: false, input: [
+    litePrefix(), { role: 'developer', content: 'Follow the user and project instructions.' }, { role: 'user', content: 'Echo x.' },
+    { type: 'custom_tool_call', namespace: 'functions', name: 'exec', call_id: 'js1', input: code },
+    { type: 'custom_tool_call_output', call_id: 'js1', output: 'x' }] };
+  const before = structuredClone(request);
+  const { body } = translateRequest(request);
+  assert.deepEqual(request, before);
+  assert.deepEqual(body.tools.map(x=>x.function.name), ['functions__exec','tool_search']);
+  assert.equal(body.parallel_tool_calls, false);
+  assert.equal(body.chat_template_kwargs.reasoning_effort, 'high');
+  assert.equal(body.messages[0].content, request.input[1].content);
+  assert.equal(body.messages[2].tool_calls[0].function.name, 'functions__exec');
+  assert.equal(JSON.parse(body.messages[2].tool_calls[0].function.arguments).input, code);
+  assert.equal(body.messages[3].tool_call_id, 'js1');
+});
+
+test('native client tool search loads a tool, executes its exact schema and finishes the turn', async () => {
+  const prefix = litePrefix();
+  const first = await generate({ model: MINIMAX_MODEL, input: [prefix,{role:'user',content:'Find echo marker.'}],
+    tool_choice: {type:'tool_search'} }, () => {}, {key:'test-only', fetcher:async()=>upstream([
+      {choices:[{index:0,delta:{tool_calls:[{index:0,id:'discovery_1',function:{name:'tool_search',arguments:'{"query":"echo marker"}'}}]},finish_reason:'tool_calls'}]}, '[DONE]'])});
+  assert.equal(first.end_turn, false);
+  assert.deepEqual(first.output[0], {...searchCall(), id:first.output[0].id});
+  const nextInput=[prefix,{role:'user',content:'Find echo marker.'},first.output[0],searchOutput()];
+  let secondBody;
+  const second = await generate({model:MINIMAX_MODEL,input:nextInput},()=>{}, {key:'test-only',fetcher:async(_,o)=>{
+    secondBody=JSON.parse(o.body);
+    return upstream([{choices:[{index:0,delta:{tool_calls:[{index:0,id:'marker_1',function:{name:'mcp_fixture__echo_marker',arguments:'{"marker":"x"}'}}]},finish_reason:'tool_calls'}]},'[DONE]']);
+  }});
+  assert.equal(second.output[0].name,'echo_marker');
+  assert.equal(second.output[0].namespace,'mcp_fixture');
+  assert.deepEqual(secondBody.tools.find(t=>t.function.name==='mcp_fixture__echo_marker').function.parameters,tool.parameters);
+  assert.equal(secondBody.messages[2].tool_call_id,'discovery_1');
+  const final = await generate({model:MINIMAX_MODEL,input:[...nextInput,second.output[0],{type:'function_call_output',call_id:'marker_1',output:'x'}]},()=>{},
+    {key:'test-only',fetcher:async()=>upstream([textChunk('x','stop'),'[DONE]'])});
+  assert.equal(final.end_turn,true);
+  assert.equal(final.output[0].content[0].text,'x');
+});
+
+test('RLite custom-call outputs preserve the namespace expected by Codex', async () => {
+  const response=await generate({model:MINIMAX_MODEL,input:[litePrefix(),{role:'user',content:'Use exec.'}]},()=>{},
+    {key:'test-only',fetcher:async()=>upstream([{choices:[{index:0,delta:{tool_calls:[{index:0,id:'js_1',function:{name:'functions__exec',arguments:'{"input":"text(42)"}'}}]},finish_reason:'tool_calls'}]},'[DONE]'])});
+  assert.equal(response.output[0].type,'custom_tool_call');
+  assert.equal(response.output[0].namespace,'functions');
+  assert.equal(response.output[0].name,'exec');
+  assert.equal(response.output[0].input,'text(42)');
+});
+
+test('deferred schemas are only advertised after the actual client loads them', () => {
+  const request={model:MINIMAX_MODEL,tools:[searchTool,{...tool,defer_loading:true}],input:'Hello'};
+  const {body}=translateRequest(request);
+  assert.deepEqual(body.tools.map(x=>x.function.name),['tool_search']);
+  assert.equal(JSON.stringify(body).includes('"marker"'),false);
+});
+
+test('local compaction replays tool search without re-enabling discovered functions', () => {
+  const {body}=translateRequest({model:MINIMAX_MODEL,tools:[],input:[litePrefix(),{role:'user',content:'Summarize'},searchCall(),searchOutput()]});
+  assert.equal(body.tools,undefined);
+  assert.equal(body.messages[2].tool_call_id,'discovery_1');
+});
+
+test('invalid deferred search and conflicting declarations fail explicitly', () => {
+  assert.throws(()=>translateRequest({model:MINIMAX_MODEL,tools:[{type:'tool_search',execution:'server'}],input:'Hi'}),{code:'hosted_tool_search_unavailable'});
+  assert.throws(()=>translateRequest({model:MINIMAX_MODEL,input:[searchOutput()]}),{code:'unmatched_tool_search'});
+  assert.throws(()=>translateRequest({model:MINIMAX_MODEL,input:[{...litePrefix(),role:'user'}]}),{code:'invalid_tool_declaration_role'});
+  assert.throws(()=>translateRequest({model:MINIMAX_MODEL,tools:[tool,{...tool,parameters:{type:'object'}}],input:'Hi'}),{code:'conflicting_tool_definition'});
+});
+
 test('Responses translation preserves namespace, freeform calls and matched results', () => {
   const request = { model: MODEL, instructions: 'Obey the user.', tools: [{ type: 'namespace', name: 'functions', tools: [
     { type: 'custom', name: 'apply_patch', description: 'Apply an exact patch.' }, tool,

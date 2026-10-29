@@ -9,7 +9,7 @@ de forma fija; el nombre del repositorio reserva el proyecto para ampliaciones.
 
 ## Instalar o recuperar después de reinstalar Codex
 
-1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.3.zip) y extráelo.
+1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.4.zip) y extráelo.
 2. Instala Node.js 22 o posterior si tu equipo no lo tiene.
 3. Ejecuta `INSTALAR.cmd` e introduce tu **clave de NVIDIA** en la ventana privada.
 4. El instalador prueba la API y sólo activa el proveedor si MiniMax responde.
@@ -36,6 +36,17 @@ La **0.1.3** reinicia Codex Desktop de Windows al terminar `INSTALAR.cmd`,
 únicamente tras una prueba NVIDIA correcta y con el proveedor listo. Identifica
 el ejecutable del paquete `OpenAI.Codex`, cierra sus procesos de escritorio y
 comprueba su reapertura. La configuración MCP mantiene el chat abierto.
+La **0.1.4** cambia la presentación de herramientas de MiniMax a la misma ruta
+del cliente que Terra/Luna: `code_mode_only`, búsqueda ejecutada por Codex y
+declaraciones incrementales Responses Lite. El adaptador traduce esos elementos
+a Chat Completions de NVIDIA y conserva namespaces, resultados y fin de turno.
+No recorta el historial, reduce el razonamiento ni cambia el timeout.
+
+Se han comprobado los contratos con herramientas de software y llamadas reales
+a MiniMax. La reducción de tokens y la latencia final en Codex Desktop siguen
+pendientes de medir en un chat nuevo después de recargar el catálogo. Incluso
+un saludo pequeño mostró alrededor de un minuto de espera en NVIDIA durante
+las pruebas; esta versión no promete eliminar la latencia del servicio.
 
 ## Clave y almacenamiento
 
@@ -62,6 +73,8 @@ condiciones y límites. No cambia a una alternativa de pago automáticamente.
 - Imágenes directas y devueltas por herramientas, conservando su texto asociado.
 - JSON por esquema y conservación de catálogo/configuración de modelos GPT.
 - Descubrimiento y consulta de las tres herramientas MCP del complemento.
+- Búsqueda de herramientas del cliente, carga diferida y llamadas desde Code Mode.
+- Historial Responses Lite con `additional_tools`, namespaces y fin de turno.
 
 La validación local automatizada y las comprobaciones reales de NVIDIA se
 resumen en [VALIDACION.json](VALIDACION.json). Una prueba de protocolo no
@@ -100,6 +113,8 @@ pruebas son fixtures de software, sin datos del usuario.
 
 - [Formato e instalación local de plugins](https://developers.openai.com/plugins/build/plugins)
 - [Compatibilidad de gateways con Codex](https://learn.chatgpt.com/docs/enterprise/gateway-compatibility)
+- [Búsqueda y carga diferida de herramientas](https://developers.openai.com/api/docs/guides/tools-tool-search)
+- [Formato de peticiones del cliente Codex](https://github.com/openai/codex/blob/main/codex-rs/core/src/client.rs)
 - [MiniMax M3.1 Flash en NVIDIA](https://build.nvidia.com/minimaxai/minimax-m3.1-flash)
 - [Condiciones y alcance de Free Endpoint](https://docs.api.nvidia.com/nim/docs/product)
 

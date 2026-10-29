@@ -11,7 +11,7 @@ export const MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
 export const SUPER_MODEL = 'nvidia/nemotron-3.5-super-vl-120b-a12b';
 export const MINIMAX_MODEL = 'minimaxai/minimax-m3.1-flash';
 export const PORT = 8768;
-export const BRIDGE_REVISION = 'history-replay-vision-v2';
+export const BRIDGE_REVISION = 'codex-code-mode-lite-v3';
 export const DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const execute = promisify(execFile);
 const OPENAI = 'https://chatgpt.com/backend-api/codex';
@@ -95,11 +95,16 @@ export const MODEL_SETTINGS = new Map([
       default_reasoning_level: 'low', supported_reasoning_levels: reasoningPresets(['none', 'low', 'high']),
       priority: 101, input_modalities: ['text', 'image'], context_window: 262144, max_context_window: 262144,
     } }],
-  [MINIMAX_MODEL, { kind: 'minimax31', validationRevision: 2, structuredOutput: true, vision: true, probeEffort: 'low',
+  [MINIMAX_MODEL, { kind: 'minimax31', validationRevision: 3, structuredOutput: true, vision: true, probeEffort: 'low',
     temperature: 1.0, topP: 0.95, catalog: {
       ...nemotronCatalogEntry, slug: MINIMAX_MODEL, display_name: 'MiniMax-M3.1-Flash',
       description: 'Código, agentes, imágenes, herramientas y JSON con esquema mediante NVIDIA API.',
       default_reasoning_level: 'medium', supported_reasoning_levels: reasoningPresets(['low', 'medium', 'high', 'xhigh', 'max']),
+      // Use the same client tool presentation as Terra/Luna. The gateway below
+      // translates the resulting RLite declarations and client tool-search loop.
+      tool_mode: 'code_mode_only', supports_search_tool: true, use_responses_lite: true,
+      node_repl_disabled: false, include_apps_usage_instructions: false,
+      include_skills_usage_instructions: false, include_plugin_usage_instructions: false,
       priority: 102, input_modalities: ['text', 'image'], context_window: 262144, max_context_window: 262144,
     } }],
 ]);
@@ -169,55 +174,89 @@ export function translateRequest(request) {
   const aliases = new Map();
   const reverse = new Map();
   const functions = [];
+  const input = typeof request.input === 'string' ? [{ role: 'user', content: request.input }] : (request.input || []);
+  const noTools = Array.isArray(request.tools) && request.tools.length === 0;
   const omittedHostedSearch = new Set();
   const isHostedSearch = type => /^web_search(?:_preview)?(?:_\d{4}_\d{2}_\d{2})?$/.test(type || '');
-  function register(tool, namespace = '') {
+  function register(tool, namespace = '', loaded = false) {
     if (tool.type === 'namespace') {
-      for (const child of tool.tools || []) register(child, namespace + tool.name + '.');
+      for (const child of tool.tools || []) register(child, namespace + tool.name + '.', loaded);
       return;
     }
     // Codex may advertise hosted search on every turn, including a greeting.
     // An optional declaration is not a request to execute that hosted tool.
     // Do not forward it to Chat Completions or invent an executable replacement.
     if (isHostedSearch(tool.type)) { omittedHostedSearch.add(tool.type); return; }
-    if (tool.type !== 'function' && tool.type !== 'custom') {
+    if (tool.type === 'tool_search' && tool.execution !== 'client') {
+      fail(400, 'hosted_tool_search_unavailable', 'NVIDIA necesita la búsqueda de herramientas ejecutada por el cliente Codex.');
+    }
+    if (!['function', 'custom', 'tool_search'].includes(tool.type)) {
       fail(400, 'unsupported_tool', 'Herramienta de proveedor no disponible en NVIDIA: ' + tool.type + '. Use herramientas de función o MCP.');
     }
-    const original = namespace + tool.name;
+    if (tool.defer_loading === true && !loaded) return;
+    const name = tool.type === 'tool_search' ? 'tool_search' : tool.name;
+    if (typeof name !== 'string' || !name) fail(400, 'invalid_tool_name', 'Falta el nombre de una herramienta.');
+    const original = namespace + name;
+    const previous = reverse.get(original);
+    if (previous) {
+      const parameters = tool.type === 'custom' ? previous.parameters : (tool.parameters || { type: 'object', properties: {} });
+      if (previous.custom !== (tool.type === 'custom') || previous.search !== (tool.type === 'tool_search')
+        || JSON.stringify(previous.parameters) !== JSON.stringify(parameters))
+        fail(400, 'conflicting_tool_definition', 'Hay definiciones incompatibles para una misma herramienta.');
+      return;
+    }
     let alias = original.replace(/[^a-zA-Z0-9_-]/g, '__').slice(0, 64);
     if (!alias || aliases.has(alias)) alias = 'tool_' + aliases.size;
-    const spec = { original, alias, custom: tool.type === 'custom' };
+    const parameters = tool.type === 'custom'
+      ? { type: 'object', properties: { input: { type: 'string' } }, required: ['input'], additionalProperties: false }
+      : (tool.parameters || { type: 'object', properties: {} });
+    const spec = { original, alias, custom: tool.type === 'custom', search: tool.type === 'tool_search',
+      namespace: namespace ? namespace.slice(0, -1) : null, name, parameters };
     aliases.set(alias, spec); reverse.set(original, spec);
     functions.push({ type: 'function', function: {
       name: alias,
       description: (tool.description || original) + (spec.custom ? ' Pass the exact freeform tool input in the input string.' : ''),
-      parameters: spec.custom
-        ? { type: 'object', properties: { input: { type: 'string' } }, required: ['input'], additionalProperties: false }
-        : (tool.parameters || { type: 'object', properties: {} }),
+      parameters,
     } });
   }
   for (const tool of request.tools || []) register(tool);
+  // RLite places the same declarations in ordered additional_tools items.
+  // Search outputs contain only the tools actually loaded by Codex. Never
+  // register the entire deferred inventory or run a replacement search here.
+  for (const item of input) {
+    if (item.type === 'additional_tools') {
+      if (!['developer', 'system'].includes(item.role)) fail(400, 'invalid_tool_declaration_role', 'La declaración incremental debe proceder del cliente.');
+      if (!Array.isArray(item.tools)) fail(400, 'invalid_tool_declarations', 'La declaración incremental no contiene herramientas válidas.');
+      if (!noTools) for (const tool of item.tools) register(tool);
+    } else if (item.type === 'tool_search_output') {
+      if (!Array.isArray(item.tools)) fail(400, 'invalid_search_output', 'El resultado de búsqueda no contiene herramientas válidas.');
+      if (!noTools) for (const tool of item.tools) register(tool, '', true);
+    }
+  }
   // A historical call need not be available now: local compaction deliberately
   // sends no tools, and resumed chats can have a different current tool set.
   // Preserve replay identities separately; never advertise a retired tool or
   // accept a fresh generated call/forced tool_choice for it.
   const historical = new Map();
   const usedAliases = new Set(aliases.keys());
+  const identity = item => item.namespace && !item.name?.startsWith(item.namespace + '.')
+    ? item.namespace + '.' + item.name : item.name;
   function historySpec(item) {
-    const active = reverse.get(item.name);
+    const name = item.type === 'tool_search_call' ? 'tool_search' : identity(item);
+    const active = reverse.get(name);
     if (active) return active;
-    if (typeof item.name !== 'string' || !item.name) fail(400, 'invalid_tool_history', 'Falta el nombre de una herramienta en el historial.');
-    const identity = item.type + ':' + item.name;
-    if (!historical.has(identity)) {
-      const stem = item.name.replace(/[^a-zA-Z0-9_-]/g, '__').slice(0, 38);
+    if (typeof name !== 'string' || !name) fail(400, 'invalid_tool_history', 'Falta el nombre de una herramienta en el historial.');
+    const key = item.type + ':' + name;
+    if (!historical.has(key)) {
+      const stem = name.replace(/[^a-zA-Z0-9_-]/g, '__').slice(0, 38);
       let counter = 0, alias;
       do {
-        alias = 'history_' + stem + '_' + createHash('sha256').update(identity + ':' + counter++).digest('hex').slice(0, 12);
+        alias = 'history_' + stem + '_' + createHash('sha256').update(key + ':' + counter++).digest('hex').slice(0, 12);
       } while (usedAliases.has(alias));
       usedAliases.add(alias);
-      historical.set(identity, { original: item.name, alias, custom: item.type === 'custom_tool_call' });
+      historical.set(key, { original: name, alias, custom: item.type === 'custom_tool_call' });
     }
-    return historical.get(identity);
+    return historical.get(key);
   }
   const messages = [];
   const pendingToolCalls = new Set();
@@ -229,10 +268,24 @@ export function translateRequest(request) {
     + 'Use only declared client-side function/custom tools, including an explicitly provided MCP search tool if present. '
     + 'If no available tool can search, state that you cannot browse or verify current information. '
     + 'Never invent searches, citations, or tool results.' });
-  const input = typeof request.input === 'string' ? [{ role: 'user', content: request.input }] : (request.input || []);
   for (const item of input) {
     if (item.type === 'reasoning') continue;
-    if (!item.type || item.type === 'message') {
+    if (item.type === 'additional_tools') {
+      // Schemas are represented once in body.tools, not copied into chat text.
+      continue;
+    } else if (item.type === 'tool_search_call') {
+      if (!item.call_id || item.execution !== 'client') fail(400, 'unsupported_search_history', 'Se necesita el identificador de la búsqueda ejecutada por el cliente.');
+      const mapped = historySpec(item);
+      messages.push({ role: 'assistant', content: null, tool_calls: [{ id: item.call_id, type: 'function',
+        function: { name: mapped.alias, arguments: typeof item.arguments === 'string' ? item.arguments : JSON.stringify(item.arguments) } }] });
+      pendingToolCalls.add(item.call_id);
+    } else if (item.type === 'tool_search_output') {
+      if (!item.call_id || item.execution !== 'client' || !pendingToolCalls.has(item.call_id))
+        fail(400, 'unmatched_tool_search', 'El resultado de búsqueda no tiene una llamada correspondiente.');
+      messages.push({ role: 'tool', tool_call_id: item.call_id,
+        content: JSON.stringify({ status: item.status, tools: item.tools.map(tool => ({ type: tool.type, name: tool.name })) }) });
+      pendingToolCalls.delete(item.call_id);
+    } else if (!item.type || item.type === 'message') {
       if (toolImageAttachments.length && pendingToolCalls.size) {
         fail(400, 'incomplete_tool_image_history', 'Faltan resultados de herramientas antes de poder incorporar sus imágenes al historial.');
       }
@@ -272,6 +325,7 @@ export function translateRequest(request) {
   const body = { model: request.model, messages, stream: true, stream_options: { include_usage: true },
     max_tokens: Math.min(request.max_output_tokens || 32768, 32768),
     temperature: request.temperature ?? settings.temperature, top_p: request.top_p ?? settings.topP };
+  if (typeof request.parallel_tool_calls === 'boolean') body.parallel_tool_calls = request.parallel_tool_calls;
   if (settings.kind === 'ultra') body.chat_template_kwargs = effort === 'none' ? { enable_thinking: false }
     : effort === 'high' ? { enable_thinking: true } : { enable_thinking: true, medium_effort: true };
   else if (settings.kind === 'super35') body.chat_template_kwargs = effort === 'none' ? { enable_thinking: false }
@@ -301,12 +355,12 @@ export function translateRequest(request) {
       if (functions.length || !['auto', 'none'].includes(request.tool_choice)) body.tool_choice = request.tool_choice;
     }
     else {
-      const mapped = reverse.get(request.tool_choice.name);
+      const mapped = reverse.get(request.tool_choice.type === 'tool_search' ? 'tool_search' : identity(request.tool_choice));
       if (!mapped) fail(400, 'unknown_tool_choice', 'tool_choice no corresponde a una herramienta declarada.');
       body.tool_choice = { type: 'function', function: { name: mapped.alias } };
     }
   }
-  return { body, aliases };
+  return { body, aliases, namespacedOutput: input.some(item => item.type === 'additional_tools') };
 }
 
 async function* readSSE(body) {
@@ -331,7 +385,7 @@ async function* readSSE(body) {
 }
 
 export async function generate(request, emit, options = {}) {
-  const { body, aliases } = translateRequest(request);
+  const { body, aliases, namespacedOutput } = translateRequest(request);
   // The hosted Super 3.5 endpoint completed strict JSON immediately in nonstream
   // mode but its SSE variant stalled. Keep incremental text; use a complete
   // upstream response only for this model's explicit strict-schema requests.
@@ -427,11 +481,25 @@ export async function generate(request, emit, options = {}) {
   for (const call of calls.values()) {
     const mapped = aliases.get(call.name);
     if (!mapped) fail(502, 'unknown_returned_tool', 'NVIDIA solicitó una herramienta que no estaba declarada.');
-    let input;
-    try { const parsed = JSON.parse(call.arguments || '{}'); if(mapped.custom) { input = parsed.input; if(typeof input !== 'string') throw new Error(); } }
+    let input, parsed;
+    try {
+      parsed = JSON.parse(call.arguments || '{}');
+      if(mapped.custom) { input = parsed.input; if(typeof input !== 'string') throw new Error(); }
+      if(mapped.search && (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))) throw new Error();
+    }
     catch { fail(502, 'invalid_tool_arguments', 'NVIDIA devolvió argumentos de herramienta no válidos.'); }
+    if (mapped.search) {
+      const item = { id: newId('tsc_'), type: 'tool_search_call', call_id: call.call_id,
+        execution: 'client', status: 'in_progress', arguments: {} };
+      const index = response.output.length; response.output.push(item);
+      event('response.output_item.added', { output_index: index, item: structuredClone(item) });
+      item.arguments = parsed; item.status = 'completed';
+      event('response.output_item.done', { output_index: index, item: structuredClone(item) });
+      continue;
+    }
     const item = { id: newId(mapped.custom ? 'ctc_' : 'fc_'), type: mapped.custom ? 'custom_tool_call' : 'function_call',
-      call_id: call.call_id, name: mapped.original, status: 'in_progress',
+      call_id: call.call_id, name: namespacedOutput ? mapped.name : mapped.original,
+      ...(namespacedOutput && mapped.namespace ? { namespace: mapped.namespace } : {}), status: 'in_progress',
       ...(mapped.custom ? { input: '' } : { arguments: '' }) };
     const index = response.output.length; response.output.push(item);
     event('response.output_item.added', { output_index: index, item: structuredClone(item) });
@@ -445,6 +513,7 @@ export async function generate(request, emit, options = {}) {
     event('response.output_item.done', { output_index: index, item: structuredClone(item) });
   }
   response.status = finished === 'length' ? 'incomplete' : 'completed';
+  response.end_turn = response.status === 'completed' && calls.size === 0;
   if (finished === 'length') response.incomplete_details = { reason: 'max_output_tokens' };
   if (!['length', 'stop', 'tool_calls'].includes(finished)) fail(502, 'unexpected_finish_reason', 'NVIDIA no confirmó una respuesta utilizable.');
   event('response.' + response.status, { response });
@@ -493,7 +562,7 @@ export function createGateway(options = {}) {
       if (req.headers.origin && req.headers.origin !== 'http://' + host) fail(403, 'origin_not_allowed', 'Origen web no autorizado.');
       if (url.pathname === '/health' && req.method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ service: 'nemotron-codex', pid: process.pid, model: MODEL,
+        res.end(JSON.stringify({ service: 'nemotron-codex', pid: process.pid, model: options.allowedModels?.length === 1 ? options.allowedModels[0] : MODEL,
           bridgeRevision: BRIDGE_REVISION,
           models: listedModelSettings().map(settings => settings.catalog.slug),
           keyAvailable: Boolean(await keyProvider()), status: 'running', bind: '127.0.0.1', port: listenPort })); return;

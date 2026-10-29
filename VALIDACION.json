@@ -1,10 +1,120 @@
 {
-  "version": "0.1.3",
+  "version": "0.1.4",
   "scope": "Local automated protocol and configuration tests; real NVIDIA inference with software fixtures.",
-  "gatewaySHA256": "eeeefc83cc6d93c5506efe90dd06812827e6ff5bf2b3e6e6c96bb3c5e24702f6",
+  "gatewaySHA256": "a609d9e8dfc03354f2ee114ed98507ef6d8569204eb53d8de203cc9180d0ee19",
   "localTests": {
-    "adapterPassed": 34,
-    "pluginPassed": 9
+    "adapterPassed": 41,
+    "pluginPassed": 9,
+    "optionalLiveTestsSkippedInSuite": 4
+  },
+  "codeMode": {
+    "bridgeRevision": "codex-code-mode-lite-v3",
+    "clientPresentationMatchesObservedTerraAndLuna": true,
+    "toolMode": "code_mode_only",
+    "clientToolSearch": true,
+    "responsesLite": true,
+    "deferredTools": true,
+    "namespacedHistory": true,
+    "endTurnPreserved": true,
+    "historyTruncated": false,
+    "reasoningReduced": false,
+    "providerTimeoutChanged": false,
+    "nativeDesktopPerformanceRetested": false,
+    "realNvidiaFixtureChecks": [
+      {
+        "name": "1/4 lite greeting",
+        "durationMs": 69249,
+        "headersMs": 66426,
+        "payloadBytes": 1032,
+        "firstTextMs": 68963,
+        "usage": {
+          "input_tokens": 530,
+          "input_tokens_details": {
+            "cached_tokens": 128
+          },
+          "output_tokens": 38,
+          "output_tokens_details": {
+            "reasoning_tokens": 25
+          },
+          "total_tokens": 568
+        },
+        "types": [
+          "message"
+        ]
+      },
+      {
+        "name": "2/4 native client discovery",
+        "durationMs": 73374,
+        "headersMs": 71589,
+        "payloadBytes": 1213,
+        "usage": {
+          "input_tokens": 580,
+          "input_tokens_details": {
+            "cached_tokens": 128
+          },
+          "output_tokens": 18,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 598
+        },
+        "types": [
+          "tool_search_call"
+        ]
+      },
+      {
+        "name": "3/4 code-mode execution",
+        "durationMs": 71738,
+        "headersMs": 68493,
+        "payloadBytes": 1850,
+        "usage": {
+          "input_tokens": 709,
+          "input_tokens_details": {
+            "cached_tokens": 128
+          },
+          "output_tokens": 43,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 752
+        },
+        "types": [
+          "custom_tool_call"
+        ]
+      },
+      {
+        "name": "4/4 final replay",
+        "durationMs": 66082,
+        "headersMs": 61233,
+        "payloadBytes": 2027,
+        "firstTextMs": 65364,
+        "usage": {
+          "input_tokens": 383,
+          "input_tokens_details": {
+            "cached_tokens": 128
+          },
+          "output_tokens": 108,
+          "output_tokens_details": {
+            "reasoning_tokens": 78
+          },
+          "total_tokens": 491
+        },
+        "types": [
+          "message"
+        ]
+      }
+    ],
+    "reasoning": "high",
+    "maxOutputTokens": 32768,
+    "priorAttempt": {
+      "durationMs": 300015,
+      "error": {
+        "code": 23,
+        "message": "The operation was aborted due to timeout"
+      },
+      "note": "The fourth request exceeded the remaining total five-minute harness budget. Only final replay was repeated with reconstructed software fixture history; no provider timeout was changed."
+    },
+    "note": "Fixture protocol checks are not a native Desktop latency comparison. The greeting used 530 input tokens in a small fixture; it is not comparable to the earlier 216956-token native chat."
   },
   "installerRestart": {
     "successGateTested": true,
@@ -53,7 +163,8 @@
   },
   "notVerified": [
     "Native plugin MCP installation",
-    "Automatic desktop close and reopen in a real installer run"
+    "Automatic desktop close and reopen in a real installer run",
+    "Native Desktop token and latency comparison after catalog reload"
   ],
   "notImplemented": [
     "Automatic model routing",

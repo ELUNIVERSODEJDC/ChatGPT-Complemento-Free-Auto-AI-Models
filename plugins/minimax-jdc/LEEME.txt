@@ -1,4 +1,4 @@
-MINIMAX PARA CODEX JDC - 0.1.3
+MINIMAX PARA CODEX JDC - 0.1.4
 
 INSTALAR CUANDO QUIERAS
 1. Extrae el ZIP en una carpeta y ejecuta INSTALAR.cmd.
@@ -55,6 +55,14 @@ Tras reiniciar Windows, el puente se inicia al cargar el MCP del complemento.
 Si el complemento no se carga aún, pide Configurar MiniMax o usa INSTALAR.cmd.
 
 COMPATIBILIDAD Y LÍMITES
+Desde 0.1.4, MiniMax usa la misma presentación de herramientas del cliente
+que Terra/Luna: Code Mode, búsqueda de herramientas ejecutada por Codex y
+declaraciones incrementales Responses Lite. El puente conserva llamadas,
+resultados, namespaces y la señal de fin de turno al traducir a la API NVIDIA.
+No recorta el historial ni reduce el razonamiento para obtener esta mejora.
+Tampoco cambia el timeout. La espera del servicio NVIDIA sigue siendo externa.
+La mejora de latencia y tokens en la app requiere una prueba con el catálogo
+recargado; las pruebas de protocolo no sustituyen esa medición.
 Texto, imágenes directas y devueltas por herramientas, function/custom/MCP,
 streaming Responses, historial y herramientas cambiadas entre turnos.
 El error de historial exec_command se corrige conservando llamadas antiguas

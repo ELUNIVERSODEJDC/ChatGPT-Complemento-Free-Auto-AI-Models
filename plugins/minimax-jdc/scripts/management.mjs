@@ -53,7 +53,7 @@ export async function storedKey() {
   return stdout.trim() || undefined;
 }
 
-export async function health() {
+export async function health({ allowStale = false } = {}) {
   let response;
   try { response = await fetch(BASE + '/health', { signal: AbortSignal.timeout(2500) }); }
   catch { return null; }
@@ -61,7 +61,10 @@ export async function health() {
   const result = await response.json();
   if (result.service !== 'nemotron-codex' || result.models?.length !== 1 || result.models[0] !== MINIMAX_MODEL)
     throw new Error('El puerto 8769 está ocupado por otro servicio. No se sustituye.');
-  if (result.bridgeRevision !== BRIDGE_REVISION) throw new Error('Hay una versión anterior del puente activa. Cierra sus peticiones antes de actualizarla.');
+  if (result.bridgeRevision !== BRIDGE_REVISION) {
+    if (!allowStale) throw new Error('Hay una versión anterior del puente activa. Cierra sus peticiones antes de actualizarla.');
+    return { ...result, needsRestart: true };
+  }
   return result;
 }
 
@@ -91,7 +94,7 @@ export async function launchBridge() {
 export async function status() {
   return { plugin: 'minimax-jdc', model: MINIMAX_MODEL, credentialStored: existsSync(path.join(DATA, 'nvidia-key.dpapi')),
     providerSelected: existsSync(CONFIG) && selected(readFileSync(CONFIG, 'utf8')) === PROVIDER,
-    gateway: await health(), dataDirectory: DATA };
+    gateway: await health({ allowStale: true }), dataDirectory: DATA };
 }
 
 export async function configure({ onProgress = () => {} } = {}) {
