@@ -26,7 +26,7 @@ test('portable and compatibility manifests and MCP descriptors agree', () => {
   const legacy = JSON.parse(readFileSync(path.join(root, '.mcp.json')));
   const { type, ...server } = portable.mcpServers['minimax-jdc'];
   assert.deepEqual(server, legacy.mcpServers['minimax-jdc']);
-  assert.ok(readFileSync(path.join(root, 'skills/configurar-minimax/SKILL.md'), 'utf8').startsWith('---\nname: configurar-minimax\n'));
+  assert.match(readFileSync(path.join(root, 'skills/configurar-minimax/SKILL.md'), 'utf8'), /^---\r?\nname: configurar-minimax\r?\n/);
 });
 
 test('provider install is idempotent and preserves GPT defaults and unrelated secrets', () => {
