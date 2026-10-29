@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { translateRequest, generate, createGateway, MODEL, SUPER_MODEL, MINIMAX_MODEL, MODEL_SETTINGS, mergeCatalog, nemotronCatalogEntry } from '../plugins/minimax-jdc/runtime/gateway.mjs';
+import { translateRequest, generate, createGateway, MODEL, SUPER_MODEL, MINIMAX_MODEL, DEEPSEEK_MODEL, GLM_MODEL, PLUGIN_MODELS, MODEL_SETTINGS, mergeCatalog, nemotronCatalogEntry } from '../plugins/minimax-jdc/runtime/gateway.mjs';
 import { setProvider, topLevel, visionFixture } from '../plugins/minimax-jdc/runtime/configurar.mjs';
 import { inflateSync } from 'node:zlib';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -22,6 +22,69 @@ const litePrefix = () => ({ type: 'additional_tools', role: 'developer', tools: 
 const searchCall = () => ({ type: 'tool_search_call', execution: 'client', call_id: 'discovery_1', status: 'completed', arguments: { query: 'echo marker' } });
 const searchOutput = () => ({ type: 'tool_search_output', execution: 'client', call_id: 'discovery_1', status: 'completed',
   tools: [{ type: 'namespace', name: 'mcp_fixture', tools: [{ ...tool, defer_loading: true }] }] });
+
+test('DeepSeek and GLM preserve their own reasoning contracts and native client tool presentation', () => {
+  for (const model of [DEEPSEEK_MODEL, GLM_MODEL]) {
+    const metadata=MODEL_SETTINGS.get(model).catalog;
+    assert.equal(metadata.context_window,1048576);
+    assert.equal(metadata.tool_mode,'code_mode_only');
+    assert.equal(metadata.use_responses_lite,true);
+    assert.equal(metadata.supports_search_tool,true);
+    assert.deepEqual(metadata.input_modalities,['text','image']);
+    assert.throws(()=>translateRequest({model,input:'hi',reasoning:{effort:'medium'}}),{code:'unsupported_effort'});
+  }
+  for(const [effort,value] of Object.entries({low:25,high:50,xhigh:75,max:100})) {
+    const {body}=translateRequest({model:DEEPSEEK_MODEL,input:'hi',reasoning:{effort}});
+    assert.deepEqual(body.chat_template_kwargs,{thinking:true,reasoning_effort:value});
+    assert.equal(body.model,DEEPSEEK_MODEL);
+  }
+  for(const effort of ['low','high','max']) {
+    const {body}=translateRequest({model:GLM_MODEL,input:'hi',reasoning:{effort}});
+    assert.equal(body.reasoning_effort,effort);
+    assert.deepEqual(body.chat_template_kwargs,{clear_thinking:true});
+  }
+});
+
+test('GLM image limit covers direct images and replayed tool attachments without dropping them', () => {
+  const image={type:'input_image',image_url:'data:image/png;base64,fixture'};
+  const images=count=>Array.from({length:count},()=>image);
+  const valid=translateRequest({model:GLM_MODEL,input:[{role:'user',content:images(8)}]});
+  assert.equal(valid.body.messages[0].content.length,8);
+  assert.throws(()=>translateRequest({model:GLM_MODEL,input:[{role:'user',content:images(9)}]}),{code:'too_many_images'});
+  assert.throws(()=>translateRequest({model:GLM_MODEL,tools:[tool],input:[{role:'user',content:images(8)},
+    {type:'function_call',name:tool.name,call_id:'image-limit',arguments:'{}'},
+    {type:'function_call_output',call_id:'image-limit',output:[image]}]}),{code:'too_many_images'});
+});
+
+test('both added models complete namespaced Code Mode calls and matching image tool replay', async () => {
+  for(const model of [DEEPSEEK_MODEL,GLM_MODEL]) {
+    const action=await generate({model,input:[litePrefix(),{role:'user',content:'Use the fixture tool.'}]},()=>{},
+      {key:'test-only',fetcher:async()=>upstream([{choices:[{index:0,delta:{tool_calls:[{index:0,id:'new-model-call',type:'function',
+        function:{name:'functions__exec',arguments:JSON.stringify({input:'text("fixture");'})}}]},finish_reason:'tool_calls'}]},'[DONE]'])});
+    assert.equal(action.end_turn,false);assert.equal(action.output[0].namespace,'functions');
+    assert.equal(action.output[0].input,'text("fixture");');
+    let sent;
+    const final=await generate({model,input:[litePrefix(),{role:'user',content:'Describe the image.'},...action.output,
+      {type:'custom_tool_call_output',call_id:'new-model-call',output:[{type:'input_text',text:'marker'},
+        {type:'input_image',image_url:'data:image/png;base64,fixture'}]}]},()=>{},
+      {key:'test-only',fetcher:async(_,options)=>{sent=JSON.parse(options.body);return upstream([textChunk('red marker','stop'),'[DONE]']);}});
+    assert.equal(final.end_turn,true);
+    assert.equal(sent.messages.at(-1).content[1].image_url.url,'data:image/png;base64,fixture');
+    assert.match(sent.messages.at(-1).content[0].text,/marker/);
+  }
+});
+
+test('DeepSeek and GLM strict JSON uses a complete upstream response while emitting valid Responses events', async () => {
+  for(const model of [DEEPSEEK_MODEL,GLM_MODEL]) {
+    let sent;const events=[];
+    const result=await generate({model,input:'Return ok.',text:{format:{type:'json_schema',name:'check',strict:true,
+      schema:{type:'object',properties:{ok:{type:'boolean'}},required:['ok'],additionalProperties:false}}}},event=>events.push(event),
+      {key:'test-only',fetcher:async(_,options)=>{sent=JSON.parse(options.body);return Response.json({choices:[{index:0,message:{content:'{"ok":true}'},finish_reason:'stop'}]});}});
+    assert.equal(sent.stream,false);assert.equal(sent.stream_options,undefined);
+    assert.equal(result.status,'completed');assert.equal(events.at(-1).type,'response.completed');
+    assert.deepEqual(JSON.parse(result.output[0].content[0].text),{ok:true});
+  }
+});
 
 test('MiniMax uses Terra and Luna client tool presentation without claiming OpenAI hosted search', () => {
   const metadata = MODEL_SETTINGS.get(MINIMAX_MODEL).catalog;
@@ -377,7 +440,7 @@ test('catalog preserves original OpenAI entries and adds only listed NVIDIA mode
     const catalog = await response.json();
     assert.deepEqual(catalog.models[0], original);
     assert.equal(catalog.models[1].slug, SUPER_MODEL);
-    assert.equal(catalog.models.length, 3);
+    assert.equal(catalog.models.length, 5);
     assert.equal(catalog.models.some(model => model.slug === MODEL), false);
     assert.equal(catalog.models.filter(model => model.slug === SUPER_MODEL).length, 1);
     assert.equal(catalog.models.filter(model => model.slug === MINIMAX_MODEL).length, 1);
@@ -390,7 +453,7 @@ test('removing Ultra from the picker preserves GPT entries, other models and old
   const upstream = { models: [gpt, { slug: MODEL, display_name: 'Stale Ultra' }] };
   const before = structuredClone(upstream);
   const catalog = mergeCatalog(upstream);
-  assert.deepEqual(catalog.models.map(model => model.slug), [gpt.slug, SUPER_MODEL, MINIMAX_MODEL]);
+  assert.deepEqual(catalog.models.map(model => model.slug), [gpt.slug, SUPER_MODEL, ...PLUGIN_MODELS]);
   assert.deepEqual(catalog.models[0], gpt);
   assert.deepEqual(upstream, before);
   assert.equal(translateRequest({ model: MODEL, input: 'Existing chat' }).body.model, MODEL);

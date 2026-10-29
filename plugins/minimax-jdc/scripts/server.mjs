@@ -2,12 +2,12 @@ import { createInterface } from 'node:readline';
 import { appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createGateway, MODEL_SETTINGS, MINIMAX_MODEL } from '../runtime/gateway.mjs';
+import { createGateway, MODEL_SETTINGS, PLUGIN_MODELS } from '../runtime/gateway.mjs';
 import { configure, restore, status, launchBridge, storedKey, PORT, DATA } from './management.mjs';
-for (const [model, settings] of MODEL_SETTINGS) settings.listed = model === MINIMAX_MODEL;
+for (const [model, settings] of MODEL_SETTINGS) settings.listed = PLUGIN_MODELS.includes(model);
 
 const tools = [
-  { name: 'estado_minimax', description: 'Estado del puente y de la configuración. Nunca devuelve la clave.',
+  { name: 'estado_minimax', description: 'Estado del puente, MiniMax, DeepSeek y GLM y de la configuración. Nunca devuelve la clave.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true } },
   { name: 'configurar_minimax', description: 'Abre una ventana local privada para introducir la clave NVIDIA, comprueba MiniMax y activa su proveedor conservando GPT. Sólo por petición expresa del usuario.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true } },
@@ -18,7 +18,7 @@ if (process.argv.includes('--gateway-only')) {
   mkdirSync(DATA, { recursive: true });
   const logError = error => appendFileSync(path.join(DATA, 'gateway-error.log'),
     new Date().toISOString() + ' MiniMax gateway: ' + String(error.code || error.name || 'runtime_error') + '\n');
-  const server = createGateway({ keyProvider: storedKey, port: PORT, allowedModels: [MINIMAX_MODEL] });
+  const server = createGateway({ keyProvider: storedKey, port: PORT, allowedModels: PLUGIN_MODELS });
   server.requestTimeout = 360000;
   server.headersTimeout = 30000;
   server.on('error', error => { logError(error); process.exitCode = 1; });

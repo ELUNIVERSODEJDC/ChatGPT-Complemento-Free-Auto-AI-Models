@@ -1,9 +1,9 @@
 {
-  "version": "0.1.5",
+  "version": "0.1.6",
   "scope": "Local automated protocol and configuration tests; real NVIDIA inference with software fixtures.",
-  "gatewaySHA256": "a609d9e8dfc03354f2ee114ed98507ef6d8569204eb53d8de203cc9180d0ee19",
+  "gatewaySHA256": "2f886b30a22036198648467c1a73474da6a2591faed613d9eae4a66dcba00823",
   "localTests": {
-    "adapterPassed": 41,
+    "adapterPassed": 45,
     "pluginPassed": 11,
     "optionalLiveTestsSkippedInSuite": 4
   },
@@ -41,7 +41,7 @@
     "durationMs": 84651
   },
   "codeMode": {
-    "bridgeRevision": "codex-code-mode-lite-v3",
+    "bridgeRevision": "codex-multi-model-lite-v4",
     "clientPresentationMatchesObservedTerraAndLuna": true,
     "toolMode": "code_mode_only",
     "clientToolSearch": true,
@@ -197,7 +197,8 @@
   "notVerified": [
     "Native plugin MCP installation",
     "Automatic desktop close and reopen in a real installer run",
-    "Native Desktop token and latency comparison after catalog reload"
+    "Native Desktop token and latency comparison after catalog reload",
+    "Real DeepSeek V4.1 Flash and GLM-5.3-Flash tool/image inference: provider did not complete the schema probes"
   ],
   "notImplemented": [
     "Automatic model routing",
@@ -205,5 +206,141 @@
     "OpenAI hosted tools for NVIDIA",
     "Audio/video",
     "NVIDIA previous_response_id"
-  ]
+  ],
+  "additionalModels": {
+    "at": "2026-10-29T18:03:19.530Z",
+    "fixtureToolsOnly": true,
+    "nativeDesktopTest": false,
+    "models": {
+      "deepseek-ai/deepseek-v4.1-flash": {
+        "checks": [],
+        "reasoning": "low",
+        "maxOutputTokens": 32768,
+        "stage": "failed",
+        "passed": false,
+        "error": {
+          "code": 23,
+          "message": "The operation was aborted due to timeout"
+        }
+      },
+      "z-ai/glm-5.3-flash": {
+        "checks": [],
+        "reasoning": "low",
+        "maxOutputTokens": 32768,
+        "stage": "failed",
+        "passed": false,
+        "error": {
+          "code": 23,
+          "message": "The operation was aborted due to timeout"
+        }
+      }
+    },
+    "priorAttempts": [
+      {
+        "at": "2026-10-29T17:58:10.802Z",
+        "durationMs": 300014,
+        "models": {
+          "deepseek-ai/deepseek-v4.1-flash": {
+            "checks": [],
+            "reasoning": "low",
+            "maxOutputTokens": 32768,
+            "stage": "failed",
+            "passed": false,
+            "error": {
+              "code": 23,
+              "message": "The operation was aborted due to timeout"
+            }
+          },
+          "z-ai/glm-5.3-flash": {
+            "checks": [],
+            "reasoning": "low",
+            "maxOutputTokens": 32768,
+            "stage": "failed",
+            "passed": false,
+            "error": {
+              "code": 23,
+              "message": "The operation was aborted due to timeout"
+            }
+          }
+        }
+      }
+    ],
+    "durationMs": 300023,
+    "validationScope": "Catalog and local protocol verified; real inference was attempted separately and must not be inferred from registration."
+  },
+  "additionalModelAvailability": {
+    "at": "2026-10-29T18:05:39.654Z",
+    "nativeDesktopTest": false,
+    "models": {
+      "deepseek-ai/deepseek-v4.1-flash": {
+        "passed": false,
+        "error": {
+          "code": 23,
+          "message": "The operation was aborted due to timeout"
+        },
+        "durationMs": 300011
+      },
+      "z-ai/glm-5.3-flash": {
+        "passed": true,
+        "usage": {
+          "input_tokens": 17,
+          "input_tokens_details": {
+            "cached_tokens": 0
+          },
+          "output_tokens": 3,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 20
+        },
+        "durationMs": 299801
+      }
+    },
+    "durationMs": 300011
+  },
+  "installedModelCatalog": {
+    "at": "2026-10-29T18:04:36.172Z",
+    "passed": true,
+    "installedGateway": true,
+    "nativePickerReloadConfirmed": false,
+    "models": [
+      {
+        "slug": "minimaxai/minimax-m3.1-flash",
+        "name": "MiniMax-M3.1-Flash",
+        "context": 262144,
+        "toolMode": "code_mode_only",
+        "reasoning": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "slug": "deepseek-ai/deepseek-v4.1-flash",
+        "name": "DeepSeek V4.1 Flash",
+        "context": 1048576,
+        "toolMode": "code_mode_only",
+        "reasoning": [
+          "low",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "slug": "z-ai/glm-5.3-flash",
+        "name": "GLM-5.3-Flash",
+        "context": 1048576,
+        "toolMode": "code_mode_only",
+        "reasoning": [
+          "low",
+          "high",
+          "max"
+        ]
+      }
+    ],
+    "gptCount": 9
+  }
 }

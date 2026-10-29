@@ -1,13 +1,13 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "minimax-jdc",
-  "version": "0.1.5",
-  "description": "Configura MiniMax M3.1 Flash de NVIDIA como modelo de Codex mediante un puente local para Windows.",
+  "version": "0.1.6",
+  "description": "Añade MiniMax, DeepSeek V4.1 Flash y GLM-5.3-Flash de NVIDIA al selector de Codex mediante un puente local para Windows.",
   "author": {"name": "ELUNIVERSODEJDC"},
   "extensions": {"com.openai": {"interface": {
     "displayName": "MiniMax para Codex JDC",
     "shortDescription": "MiniMax con tu clave NVIDIA",
-    "longDescription": "Complemento local para Windows. Configura tu clave NVIDIA en una ventana privada, prueba la conexión y añade MiniMax al selector conservando los modelos GPT. Requiere Node.js 22 o posterior. La instalación no ejecuta código automáticamente: usa Configurar MiniMax al instalarlo o ejecuta INSTALAR.cmd.",
+    "longDescription": "Complemento local para Windows. Configura tu clave NVIDIA en una ventana privada y añade MiniMax, DeepSeek V4.1 Flash y GLM-5.3-Flash al selector conservando los modelos GPT. Requiere Node.js 22 o posterior. Usa Configurar MiniMax al instalarlo o ejecuta INSTALAR.cmd.",
     "developerName": "ELUNIVERSODEJDC",
     "category": "Developer Tools",
     "capabilities": ["Read", "Write"],

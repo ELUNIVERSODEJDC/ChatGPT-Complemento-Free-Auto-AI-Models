@@ -1,11 +1,11 @@
-MINIMAX PARA CODEX JDC - 0.1.5
+MINIMAX PARA CODEX JDC - 0.1.6
 
 INSTALAR CUANDO QUIERAS
 1. Extrae el ZIP en una carpeta y ejecuta INSTALAR.cmd.
 2. Introduce tu clave NVIDIA en la ventana de contraseña. No la pegues en el chat.
 3. El instalador hace una prueba real de MiniMax y configura su proveedor sólo
    si la conexión funciona. Mantiene los modelos GPT y tu modelo predeterminado.
-4. El instalador reinicia Codex automáticamente. Selecciona MiniMax-M3.1-Flash.
+4. El instalador reinicia Codex. Selecciona MiniMax, DeepSeek V4.1 Flash o GLM-5.3-Flash.
 5. En Plugins, abre tu mercado personal e instala MiniMax para Codex JDC para
    disponer de sus herramientas y del arranque al cargar el complemento.
 
@@ -43,7 +43,7 @@ se informa del conflicto; no se detiene ni sustituye ese proceso.
 La clave usa DPAPI de Windows, vinculada al usuario y al equipo. No se incluye
 en el plugin, en el ZIP, en herramientas de chat ni en el archivo config.toml.
 El puente recibe el historial de las peticiones al modelo seleccionado:
-MiniMax va a NVIDIA; los modelos GPT mantienen su ruta OpenAI.
+MiniMax, DeepSeek y GLM van a NVIDIA; los modelos GPT mantienen su ruta OpenAI.
 No registra el contenido de conversaciones ni argumentos de herramientas.
 Una copia de recuperación local de config.toml puede contener tus otras
 credenciales; no la compartas. No se empaqueta ni sube.
@@ -58,6 +58,15 @@ Tras reiniciar Windows, el puente se inicia al cargar el MCP del complemento.
 Si el complemento no se carga aún, pide Configurar MiniMax o usa INSTALAR.cmd.
 
 COMPATIBILIDAD Y LÍMITES
+Desde 0.1.6 se añaden DeepSeek V4.1 Flash y GLM-5.3-Flash junto a MiniMax,
+con la misma clave NVIDIA y conservando los modelos GPT. No se cambia el modelo
+seleccionado de tus chats. Recarga Codex para ver las nuevas entradas del catálogo.
+Ambos modelos nuevos anuncian contexto de 1.048.576 tokens y admiten texto,
+imágenes y herramientas. GLM admite hasta ocho imágenes por petición; si se
+supera ese límite se informa del error sin eliminar imágenes del historial.
+DeepSeek ofrece low/high/xhigh/max; GLM ofrece low/high/max. Ambos usan high
+por defecto en el selector. El puente limita la salida a 32.768 tokens por
+petición, como en MiniMax. El razonamiento elegido se traduce para cada modelo.
 Desde 0.1.4, MiniMax usa la misma presentación de herramientas del cliente
 que Terra/Luna: Code Mode, búsqueda de herramientas ejecutada por Codex y
 declaraciones incrementales Responses Lite. El puente conserva llamadas,

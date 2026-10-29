@@ -5,7 +5,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { generate, MINIMAX_MODEL, BRIDGE_REVISION } from '../runtime/gateway.mjs';
+import { generate, MINIMAX_MODEL, PLUGIN_MODELS, BRIDGE_REVISION } from '../runtime/gateway.mjs';
 import { topLevel, setProvider } from '../runtime/configurar.mjs';
 
 const run = promisify(execFile);
@@ -59,9 +59,12 @@ export async function health({ allowStale = false } = {}) {
   catch { return null; }
   if (!response.ok) throw new Error('El puerto local de MiniMax está ocupado por otro servicio.');
   const result = await response.json();
-  if (result.service !== 'nemotron-codex' || result.models?.length !== 1 || result.models[0] !== MINIMAX_MODEL)
+  const expectedModels = [...PLUGIN_MODELS].sort().join('|');
+  const actualModels = Array.isArray(result.models) ? [...result.models].sort().join('|') : '';
+  const legacyModels = actualModels === MINIMAX_MODEL;
+  if (result.service !== 'nemotron-codex' || (actualModels !== expectedModels && !legacyModels))
     throw new Error('El puerto 8769 está ocupado por otro servicio. No se sustituye.');
-  if (result.bridgeRevision !== BRIDGE_REVISION) {
+  if (result.bridgeRevision !== BRIDGE_REVISION || actualModels !== expectedModels) {
     if (!allowStale) throw new Error('Hay una versión anterior del puente activa. Cierra sus peticiones antes de actualizarla.');
     return { ...result, needsRestart: true };
   }
@@ -124,7 +127,7 @@ async function startBridge() {
 }
 
 export async function status() {
-  return { plugin: 'minimax-jdc', model: MINIMAX_MODEL, credentialStored: existsSync(path.join(DATA, 'nvidia-key.dpapi')),
+  return { plugin: 'minimax-jdc', model: MINIMAX_MODEL, models: PLUGIN_MODELS, credentialStored: existsSync(path.join(DATA, 'nvidia-key.dpapi')),
     providerSelected: existsSync(CONFIG) && selected(readFileSync(CONFIG, 'utf8')) === PROVIDER,
     gateway: await health({ allowStale: true }), dataDirectory: DATA };
 }

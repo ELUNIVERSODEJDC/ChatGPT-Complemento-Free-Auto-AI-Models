@@ -10,8 +10,11 @@ import path from 'node:path';
 export const MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
 export const SUPER_MODEL = 'nvidia/nemotron-3.5-super-vl-120b-a12b';
 export const MINIMAX_MODEL = 'minimaxai/minimax-m3.1-flash';
+export const DEEPSEEK_MODEL = 'deepseek-ai/deepseek-v4.1-flash';
+export const GLM_MODEL = 'z-ai/glm-5.3-flash';
+export const PLUGIN_MODELS = [MINIMAX_MODEL, DEEPSEEK_MODEL, GLM_MODEL];
 export const PORT = 8768;
-export const BRIDGE_REVISION = 'codex-code-mode-lite-v3';
+export const BRIDGE_REVISION = 'codex-multi-model-lite-v4';
 export const DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const execute = promisify(execFile);
 const OPENAI = 'https://chatgpt.com/backend-api/codex';
@@ -82,13 +85,16 @@ const reasoningPresets = efforts => efforts.map(effort => ({ effort, description
   none: 'Sin razonamiento adicional', low: 'Razonamiento ligero', medium: 'Razonamiento equilibrado',
   high: 'Razonamiento completo', xhigh: 'Razonamiento extra alto', max: 'Razonamiento máximo',
 }[effort] }));
+const codeModeCatalog = { tool_mode: 'code_mode_only', supports_search_tool: true, use_responses_lite: true,
+  node_repl_disabled: false, include_apps_usage_instructions: false,
+  include_skills_usage_instructions: false, include_plugin_usage_instructions: false };
 
 // This registry owns model routing, capabilities, sampling and reasoning contracts.
 // The API and launcher both consume it; neither maintains a separate model list.
 export const MODEL_SETTINGS = new Map([
   [MODEL, { kind: 'ultra', listed: false, validationRevision: 1, structuredOutput: false, vision: false, probeEffort: 'none',
     temperature: 0.6, topP: 0.95, catalog: nemotronCatalogEntry }],
-  [SUPER_MODEL, { kind: 'super35', validationRevision: 3, structuredOutput: true, vision: true, probeEffort: 'none',
+  [SUPER_MODEL, { kind: 'super35', validationRevision: 3, structuredOutput: true, structuredTransport: 'complete', vision: true, probeEffort: 'none',
     temperature: 1.0, topP: 0.95, catalog: {
       ...nemotronCatalogEntry, slug: SUPER_MODEL, display_name: 'NVIDIA Nemotron 3.5 Super VL',
       description: 'Texto, imágenes, herramientas y JSON con esquema mediante NVIDIA API.',
@@ -102,10 +108,22 @@ export const MODEL_SETTINGS = new Map([
       default_reasoning_level: 'medium', supported_reasoning_levels: reasoningPresets(['low', 'medium', 'high', 'xhigh', 'max']),
       // Use the same client tool presentation as Terra/Luna. The gateway below
       // translates the resulting RLite declarations and client tool-search loop.
-      tool_mode: 'code_mode_only', supports_search_tool: true, use_responses_lite: true,
-      node_repl_disabled: false, include_apps_usage_instructions: false,
-      include_skills_usage_instructions: false, include_plugin_usage_instructions: false,
+      ...codeModeCatalog,
       priority: 102, input_modalities: ['text', 'image'], context_window: 262144, max_context_window: 262144,
+    } }],
+  [DEEPSEEK_MODEL, { kind: 'deepseek41', validationRevision: 1, structuredOutput: true, structuredTransport: 'complete', vision: true, probeEffort: 'low',
+    temperature: 1.0, topP: 0.95, reasoningValues: { low: 25, high: 50, xhigh: 75, max: 100 }, catalog: {
+      ...nemotronCatalogEntry, ...codeModeCatalog, slug: DEEPSEEK_MODEL, display_name: 'DeepSeek V4.1 Flash',
+      description: 'Texto, imágenes y herramientas mediante NVIDIA. Contexto de 1M tokens.',
+      default_reasoning_level: 'high', supported_reasoning_levels: reasoningPresets(['low', 'high', 'xhigh', 'max']),
+      priority: 103, input_modalities: ['text', 'image'], context_window: 1048576, max_context_window: 1048576,
+    } }],
+  [GLM_MODEL, { kind: 'glm53', validationRevision: 1, structuredOutput: true, structuredTransport: 'complete', vision: true, maxImages: 8, probeEffort: 'low',
+    temperature: 0.5, topP: 1, catalog: {
+      ...nemotronCatalogEntry, ...codeModeCatalog, slug: GLM_MODEL, display_name: 'GLM-5.3-Flash',
+      description: 'Texto, hasta 8 imágenes y herramientas mediante NVIDIA. Contexto de 1M tokens.',
+      default_reasoning_level: 'high', supported_reasoning_levels: reasoningPresets(['low', 'high', 'max']),
+      priority: 104, input_modalities: ['text', 'image'], context_window: 1048576, max_context_window: 1048576,
     } }],
 ]);
 
@@ -317,6 +335,9 @@ export function translateRequest(request) {
   if (toolImageAttachments.length) {
     fail(400, 'incomplete_tool_image_history', 'Faltan resultados de herramientas antes de poder incorporar sus imágenes al historial.');
   }
+  if (settings.maxImages && messages.reduce((count, message) => count + (Array.isArray(message.content)
+    ? message.content.filter(part => part.type === 'image_url').length : 0), 0) > settings.maxImages)
+    fail(400, 'too_many_images', 'El endpoint de ' + settings.catalog.display_name + ' admite hasta ' + settings.maxImages + ' imágenes por petición.');
   const effort = request.reasoning?.effort || settings.catalog.default_reasoning_level;
   const supported = settings.catalog.supported_reasoning_levels.map(preset => preset.effort);
   if (!supported.includes(effort) && !(settings.kind === 'ultra' && effort === 'low')) {
@@ -330,6 +351,11 @@ export function translateRequest(request) {
     : effort === 'high' ? { enable_thinking: true } : { enable_thinking: true, medium_effort: true };
   else if (settings.kind === 'super35') body.chat_template_kwargs = effort === 'none' ? { enable_thinking: false }
     : effort === 'low' ? { enable_thinking: true, low_effort: true } : { enable_thinking: true };
+  else if (settings.kind === 'deepseek41') body.chat_template_kwargs = { thinking: true, reasoning_effort: settings.reasoningValues[effort] };
+  else if (settings.kind === 'glm53') {
+    body.reasoning_effort = effort;
+    body.chat_template_kwargs = { clear_thinking: true };
+  }
   else body.chat_template_kwargs = { reasoning_effort: effort };
   const format = request.text?.format;
   if (format && format.type !== 'text') {
@@ -388,8 +414,9 @@ export async function generate(request, emit, options = {}) {
   const { body, aliases, namespacedOutput } = translateRequest(request);
   // The hosted Super 3.5 endpoint completed strict JSON immediately in nonstream
   // mode but its SSE variant stalled. Keep incremental text; use a complete
-  // upstream response only for this model's explicit strict-schema requests.
-  const completeStructuredResponse = request.model === SUPER_MODEL && body.response_format?.type === 'json_schema';
+  // upstream response for explicit strict-schema requests on these endpoints.
+  // DeepSeek/GLM use this path too; ordinary text and tool calls remain SSE.
+  const completeStructuredResponse = MODEL_SETTINGS.get(request.model).structuredTransport === 'complete' && body.response_format?.type === 'json_schema';
   if (completeStructuredResponse) { body.stream = false; delete body.stream_options; }
   const key = options.key ?? await getKey();
   if (!key) fail(503, 'nvidia_key_missing', 'Este proceso no encuentra NVIDIA_API_KEY. Ruta alternativa: clave-nvidia.txt junto al lanzador.');
@@ -562,7 +589,7 @@ export function createGateway(options = {}) {
       if (req.headers.origin && req.headers.origin !== 'http://' + host) fail(403, 'origin_not_allowed', 'Origen web no autorizado.');
       if (url.pathname === '/health' && req.method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ service: 'nemotron-codex', pid: process.pid, model: options.allowedModels?.length === 1 ? options.allowedModels[0] : MODEL,
+        res.end(JSON.stringify({ service: 'nemotron-codex', pid: process.pid, model: options.allowedModels?.[0] || MODEL,
           bridgeRevision: BRIDGE_REVISION,
           models: listedModelSettings().map(settings => settings.catalog.slug),
           keyAvailable: Boolean(await keyProvider()), status: 'running', bind: '127.0.0.1', port: listenPort })); return;
@@ -599,7 +626,7 @@ export function createGateway(options = {}) {
         if (request.stream === false) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(result)); }
         else res.end();
       } else {
-        if (request.model?.startsWith('nvidia/') || request.model?.startsWith('minimaxai/')) {
+        if (/^(nvidia|minimaxai|deepseek-ai|z-ai)\//.test(request.model || '')) {
           fail(404, 'unknown_model', 'Ese modelo NVIDIA no está registrado en el puente.');
         }
         const target = url.pathname.replace('/v1', '');

@@ -9,7 +9,7 @@ Para consultar el estado usa estado_minimax. Para volver al proveedor anterior, 
 
 Si MCP aún no está disponible, ejecuta node con la ruta absoluta scripts/configure.mjs dentro de la raíz instalada del plugin. No invoques codex.exe ni modifiques la instalación de Codex. No cambies ACL, políticas de ejecución, permisos ni servicios de Windows.
 
-El complemento es local: requiere Windows y Node.js >=22. Sólo añade MiniMax de NVIDIA; mantiene las entradas GPT del catálogo original. No añade Ultra, Super VL ni proveedores de pago. No cambies el modelo de un chat por tu cuenta.
+El complemento es local: requiere Windows y Node.js >=22. Añade MiniMax M3.1 Flash, DeepSeek V4.1 Flash y GLM-5.3-Flash mediante la misma clave NVIDIA; mantiene las entradas GPT del catálogo original. No añade Ultra, Super VL ni proveedores de pago. No cambies el modelo de un chat por tu cuenta.
 
 El instalador externo INSTALAR.cmd reinicia Codex automáticamente después de comprobar la conexión y activar el proveedor. La herramienta MCP configurar_minimax y la configuración directa conservan el chat abierto; sólo solicita un reinicio desde ellas si el usuario lo pide expresamente. Tras cargar la configuración, selecciona MiniMax en el selector. Comprueba el estado antes de afirmar que está activo. Una prueba del adaptador no demuestra que el selector de la app ya esté actualizado.
 

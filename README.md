@@ -1,20 +1,29 @@
 # ChatGPT Complemento Free Auto AI Models
 
-Primera versión: **MiniMax para Codex JDC**, un complemento local para Windows
-que añade `minimaxai/minimax-m3.1-flash` de NVIDIA al selector de modelos de Codex
-mediante un puente local. Conserva las entradas GPT del catálogo original.
+**MiniMax para Codex JDC** es un complemento local para Windows que añade
+modelos NVIDIA al selector de Codex mediante un puente local. Desde 0.1.6 incluye:
 
-El modo **Auto** todavía no está implementado. Esta versión utiliza MiniMax
-de forma fija; el nombre del repositorio reserva el proyecto para ampliaciones.
+| Modelo | Identificador NVIDIA | Contexto | Razonamiento |
+| --- | --- | --- | --- |
+| MiniMax M3.1 Flash | `minimaxai/minimax-m3.1-flash` | 262.144 | low, medium, high, xhigh, max |
+| DeepSeek V4.1 Flash | `deepseek-ai/deepseek-v4.1-flash` | 1.048.576 | low, high, xhigh, max |
+| GLM-5.3-Flash | `z-ai/glm-5.3-flash` | 1.048.576 | low, high, max |
+
+Los tres admiten texto, imágenes y herramientas. Usan la misma clave NVIDIA y
+conservan las entradas GPT del catálogo original. La salida del puente está
+limitada a 32.768 tokens por petición. GLM admite hasta ocho imágenes por petición.
+
+El modo **Auto** todavía no está implementado. El usuario elige el modelo en
+el selector; el complemento no cambia el modelo de los chats por su cuenta.
 
 ## Instalar o recuperar después de reinstalar Codex
 
-1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.5.zip) y extráelo.
+1. Descarga [el ZIP de instalación](dist/minimax-jdc-0.1.6.zip) y extráelo.
 2. Instala Node.js 22 o posterior si tu equipo no lo tiene.
 3. Ejecuta `INSTALAR.cmd` e introduce tu **clave de NVIDIA** en la ventana privada.
 4. El instalador prueba la API y sólo activa el proveedor si MiniMax responde.
 5. El instalador reinicia Codex automáticamente para cargar la configuración;
-   selecciona **MiniMax-M3.1-Flash**.
+   selecciona **MiniMax-M3.1-Flash**, **DeepSeek V4.1 Flash** o **GLM-5.3-Flash**.
 6. En **Plugins**, instala **MiniMax para Codex JDC** desde tu mercado personal
    para disponer de sus herramientas de gestión y de su arranque al cargarlo.
 
@@ -54,6 +63,24 @@ el puerto local sin escucha y causando `Connection failed: error sending request
 Windows inicia ahora un proceso independiente mediante CIM, sin consola visible,
 servicio ni tarea programada. El servidor guarda su propio PID y registros.
 La regresión comprueba que siga respondiendo tras terminar su lanzador.
+La **0.1.6** añade DeepSeek V4.1 Flash y GLM-5.3-Flash al mismo catálogo y
+proveedor. Ambos usan Code Mode, búsqueda de herramientas y Responses Lite.
+DeepSeek traduce sus niveles a presupuesto numérico 25/50/75/100; GLM conserva
+`low/high/max` y usa `clear_thinking=true` en su plantilla de chat. Los niveles
+anunciados se validan antes de enviar la petición. El límite de ocho imágenes de
+GLM se comprueba también en los resultados de herramientas, sin eliminar imágenes.
+
+Estado de validación de los modelos añadidos en 0.1.6: el catálogo instalado y
+la traducción local están comprobados. Las primeras pruebas de inferencia real
+con esquema JSON no completaron dentro de los cinco minutos permitidos por
+petición, tanto en streaming como sin streaming. No se declara validado el uso
+real de herramientas o imágenes de estos dos endpoints por haberlos registrado
+en el selector. Los resultados y las pruebas de disponibilidad de texto figuran
+en `VALIDACION.json`; la disponibilidad anunciada por NVIDIA no garantiza una
+respuesta durante una prueba concreta.
+En la comprobación de texto simple del 29 de octubre de 2026, GLM devolvió el
+marcador esperado en 299,8 segundos; DeepSeek no completó antes de 300 segundos.
+La inferencia real con herramientas e imágenes de ambos modelos queda pendiente.
 
 ## Clave y almacenamiento
 
@@ -66,7 +93,7 @@ los registros y la recuperación local están en
 `%LOCALAPPDATA%\ELUNIVERSODEJDC\MiniMaxCodex`.
 Los datos de usuario y claves **no forman parte de este repositorio**.
 
-El puente escucha sólo en `127.0.0.1:8769`. MiniMax utiliza NVIDIA; las
+El puente escucha sólo en `127.0.0.1:8769`. Los tres modelos añadidos utilizan NVIDIA; las
 peticiones GPT mantienen la ruta OpenAI y su credencial no se envía a NVIDIA.
 Usa el endpoint NVIDIA marcado como Free Endpoint, sujeto a su disponibilidad,
 condiciones y límites. No cambia a una alternativa de pago automáticamente.
@@ -123,6 +150,9 @@ pruebas son fixtures de software, sin datos del usuario.
 - [Búsqueda y carga diferida de herramientas](https://developers.openai.com/api/docs/guides/tools-tool-search)
 - [Formato de peticiones del cliente Codex](https://github.com/openai/codex/blob/main/codex-rs/core/src/client.rs)
 - [MiniMax M3.1 Flash en NVIDIA](https://build.nvidia.com/minimaxai/minimax-m3.1-flash)
+- [DeepSeek V4.1 Flash en NVIDIA](https://build.nvidia.com/deepseek-ai/deepseek-v4.1-flash)
+- [GLM-5.3-Flash en NVIDIA](https://build.nvidia.com/z-ai/glm-5-3-flash/modelcard)
+- [Presupuesto de razonamiento DeepSeek en vLLM](https://recipes.vllm.ai/deepseek-ai/DeepSeek-V4.1-Flash)
 - [Condiciones y alcance de Free Endpoint](https://docs.api.nvidia.com/nim/docs/product)
 
 Creado con el flujo de [Plugin Creator](https://developers.openai.com/plugins/build/plugins)
